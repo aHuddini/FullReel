@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FullVid.Services.Controller;
 using Playnite.SDK.Events;
@@ -6,9 +7,9 @@ using NUnit.Framework;
 namespace FullVid.Tests
 {
     // Stack behaviour of ControllerEventRouter — the shared seam both dialogs push onto.
-    // HandleButtonPressed dispatches via Application.Current.Dispatcher (null in a headless
-    // run), so these assert on the routing decision — which receiver Peek() would hand the
-    // press to — rather than the async invoke. Ctor FileLogger is optional (pass none).
+    // HandleButtonPressed marshals the actual receiver call through a UI Dispatcher (null in a
+    // headless run), so these assert on ResolvePressReceiver — the pure routing decision that
+    // dispatch consumes — i.e. which receiver a press routes to. Ctor FileLogger is optional.
     [TestFixture]
     public class ControllerEventRouterTests
     {
@@ -107,15 +108,26 @@ namespace FullVid.Tests
             Assert.That(router.HasActiveReceiver, Is.False);
         }
 
-        // The receiver Peek() would return — the same instance HandleButtonPressed routes to.
-        // Read off the private stack so we verify push/pop/middle-removal order deterministically
-        // without needing a live WPF dispatcher.
+        [Test]
+        public void RegistrationCooldown_SuppressesPressRightAfterRegister()
+        {
+            var router = new ControllerEventRouter();
+            var a = new FakeReceiver();
+
+            router.Register(a);
+
+            // A press at the instant of registration falls inside the ~200ms cooldown that eats
+            // the stale A which opened the dialog — so it routes to nobody.
+            Assert.That(router.ResolvePressReceiver(DateTime.Now), Is.Null, "cooldown suppresses the opening press");
+            // Well past the cooldown, the same receiver takes input.
+            Assert.That(router.ResolvePressReceiver(DateTime.Now.AddSeconds(1)), Is.SameAs(a));
+        }
+
+        // The receiver a press routes to — exactly what HandleButtonPressed resolves before it
+        // dispatches. now=MaxValue so the post-registration cooldown never masks the top.
         private static IControllerInputReceiver Top(ControllerEventRouter router)
         {
-            var field = typeof(ControllerEventRouter)
-                .GetField("_receiverStack", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var stack = (Stack<IControllerInputReceiver>)field.GetValue(router);
-            return stack.Count > 0 ? stack.Peek() : null;
+            return router.ResolvePressReceiver(DateTime.MaxValue);
         }
     }
 }

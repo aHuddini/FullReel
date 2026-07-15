@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using Playnite.SDK;
 using Playnite.SDK.Events;
+
+[assembly: InternalsVisibleTo("FullVid.Tests")]
 
 namespace FullVid.Services.Controller
 {
@@ -68,15 +71,21 @@ namespace FullVid.Services.Controller
             }
         }
 
-        public void HandleButtonPressed(ControllerInput button)
+        // Which receiver a press at `now` routes to: top of stack, or null during the
+        // post-registration cooldown / when empty. Pure decision, no dispatch — the seam
+        // the router tests exercise directly (dispatch below needs a live UI Dispatcher).
+        internal IControllerInputReceiver ResolvePressReceiver(DateTime now)
         {
-            IControllerInputReceiver receiver;
             lock (_lock)
             {
-                if (DateTime.Now < _registrationCooldownUntil) return;
-                receiver = _receiverStack.Count > 0 ? _receiverStack.Peek() : null;
+                if (now < _registrationCooldownUntil) return null;
+                return _receiverStack.Count > 0 ? _receiverStack.Peek() : null;
             }
+        }
 
+        public void HandleButtonPressed(ControllerInput button)
+        {
+            var receiver = ResolvePressReceiver(DateTime.Now);
             if (receiver == null) return;
 
             // Use Input priority so the nested ShowDialog() message pump processes our events.
