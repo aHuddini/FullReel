@@ -28,14 +28,26 @@
 
         <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
 
-        <Border Grid.Row="1"
-                Background="#B0141414"
-                BorderBrush="#33FFFFFF"
-                BorderThickness="0,1,0,0"
-                Padding="0,11,0,11">
-            <Border.Effect>
-                <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.55"/>
-            </Border.Effect>
+        <!-- Hint bar row: a blurred slice of the game art sits behind a translucent panel, so
+             the strip reads as real frosted glass. ClipToBounds keeps the blurred art inside
+             the row; the art is stretched wide and bottom-aligned so a band of it shows. -->
+        <Grid Grid.Row="1" ClipToBounds="True">
+            <Image x:Name="GlassArt"
+                   Stretch="UniformToFill"
+                   VerticalAlignment="Bottom"
+                   Opacity="0.7">
+                <Image.Effect>
+                    <BlurEffect Radius="40" KernelType="Gaussian"/>
+                </Image.Effect>
+            </Image>
+
+            <!-- Dark scrim so text stays legible over any art, plus the glass tint. -->
+            <Border Background="#99101010"/>
+
+            <Border Background="#4D141414"
+                    BorderBrush="#33FFFFFF"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,11,0,11">
             <TextBlock FontSize="14"
                        TextAlignment="Center"
                        TextWrapping="Wrap">
@@ -49,6 +61,7 @@
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
-        </Border>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
