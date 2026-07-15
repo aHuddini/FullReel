@@ -23,7 +23,9 @@ namespace FullVid
         private ControllerEventRouter _controllerRouter;
         private readonly FullVidSettingsViewModel _settingsViewModel;
 
-        public override Guid Id { get; } = Guid.Parse("fd1c93dc-92a4-4380-a090-47d68988eb0c");
+        // Must equal the GUID in extension.yaml's Id (FullVid.087df234-...) — Playnite keys the
+        // add-on's settings/registration off GenericPlugin.Id, so a mismatch hides the settings page.
+        public override Guid Id { get; } = Guid.Parse("087df234-b55b-4824-a7a2-3adac1aec1ec");
 
         public bool IsFullscreen => _api.ApplicationInfo.Mode == ApplicationMode.Fullscreen;
         public bool IsDesktop => _api.ApplicationInfo.Mode == ApplicationMode.Desktop;
@@ -34,6 +36,10 @@ namespace FullVid
             _fileLogger = new FileLogger(GetPluginUserDataPath(), _api?.Paths?.ConfigurationPath);
             _controllerRouter = new ControllerEventRouter(_fileLogger);
             _settingsViewModel = new FullVidSettingsViewModel(this);
+
+            // Without HasSettings, Playnite never surfaces the settings page even though
+            // GetSettings/GetSettingsView are implemented — the add-on shows no settings entry.
+            Properties = new GenericPluginProperties { HasSettings = true };
 
             // Register this instance so dialogs (DialogHelper) can reach the shared router.
             if (Application.Current?.Properties != null)
