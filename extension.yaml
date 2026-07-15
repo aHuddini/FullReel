@@ -1,0 +1,8 @@
+Id: FullVid.087df234-b55b-4824-a7a2-3adac1aec1ec
+Name: FullVid
+Author: Huddini
+Version: 0.1.0
+Module: FullVid.dll
+Type: GenericPlugin
+Icon: icon.png
+Description: Full-screen video player for Playnite games.
