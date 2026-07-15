@@ -174,7 +174,7 @@ namespace FullVid.Dialogs
             if (!string.Equals(e.Request?.Uri, PlayerPageUrl, StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var html = BuildPlayerHtml(_video?.Id ?? string.Empty, _frosted);
+            var html = BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty, _frosted);
             var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
             var env = Web.CoreWebView2.Environment;
             e.Response = env.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
@@ -184,13 +184,24 @@ namespace FullVid.Dialogs
         // autoplay=1, controls=0 — all transport is driven from C# via ExecuteScriptAsync.
         // frostedBar adds the controls-hint legend as an in-page overlay with backdrop-filter:
         // Chromium blurs the live video behind it natively on the GPU — no WPF snapshots.
-        private static string BuildPlayerHtml(string videoId, bool frostedBar)
+        private static string BuildPlayerHtml(string videoId, string title, bool frostedBar)
         {
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
-            // pointer-events:none — the bar is display-only; all input stays in C#.
-            var bar = !frostedBar ? "" :
-                "<div id=\"bar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:10;" +
+            // Both bars are pointer-events:none — display-only; all input stays in C#. Only the
+            // bottom bar blurs (backdrop-filter); the top title bar is a matching plain-translucent
+            // strip so the player reads consistently top-and-bottom.
+            var topBar = !frostedBar ? "" :
+                "<div style=\"position:fixed;left:0;right:0;top:0;z-index:10;" +
+                "pointer-events:none;padding:11px 16px;box-sizing:border-box;" +
+                "font:600 16px 'Segoe UI',sans-serif;color:#F5F5F5;" +
+                "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
+                "background:rgba(18,18,18,.45);border-bottom:1px solid rgba(255,255,255,.15);\">" +
+                HtmlEscape(title) +
+                "</div>";
+
+            var bottomBar = !frostedBar ? "" :
+                "<div style=\"position:fixed;left:0;right:0;bottom:0;z-index:10;" +
                 "pointer-events:none;padding:13px 8px;text-align:center;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
                 "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
@@ -209,7 +220,7 @@ namespace FullVid.Dialogs
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>" +
-                "</head><body><div id=\"p\"></div>" + bar +
+                "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
                 "function onYouTubeIframeAPIReady(){" +
@@ -219,6 +230,14 @@ namespace FullVid.Dialogs
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
                 "</script></body></html>";
+        }
+
+        // Minimal HTML-entity escape for the video title (untrusted — comes from yt-dlp JSON).
+        private static string HtmlEscape(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return string.Empty;
+            return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;")
+                    .Replace("\"", "&quot;").Replace("'", "&#39;");
         }
 
         private void OnDialogUnloaded(object sender, RoutedEventArgs e)

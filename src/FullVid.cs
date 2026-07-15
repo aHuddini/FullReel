@@ -160,6 +160,12 @@ namespace FullVid
 
             window = DialogHelper.CreateFullscreenDialog(_api, player, "FullVid: " + (video?.Title ?? "Player"), 1280, 760, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "WatchVideo");
+
+            // Drop the OS/Playnite title bar — the player draws its own glass top bar in-page
+            // (BuildPlayerHtml), so the window chrome would just be a mismatched strip above it.
+            try { window.WindowStyle = System.Windows.WindowStyle.None; window.ResizeMode = System.Windows.ResizeMode.NoResize; }
+            catch (Exception ex) { _fileLogger?.Debug("Could not hide player title bar: " + ex.Message); }
+
             window.ShowDialog();
         }
 
