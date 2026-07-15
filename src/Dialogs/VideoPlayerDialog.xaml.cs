@@ -49,6 +49,13 @@ namespace FullVid.Dialogs
         private bool _upsPaused;
         private bool _webReady;
 
+        // Frosted-mode: throttled timer that snapshots the video's bottom strip into the bar's
+        // blurred backing. ~12fps decouples the blur cost from the video framerate (the throttle).
+        private System.Windows.Threading.DispatcherTimer _frostTimer;
+        private System.Windows.Media.Imaging.RenderTargetBitmap _frostRtb;
+        private const double FrostFps = 12;
+        private bool _frosted;
+
         // Pure button-decision seam. swapAB models Playnite's SwapConfirmCancelButtons:
         // when true, A and B trade their PlayPause(confirm)/Close(cancel) roles. Y and the
         // D-pad are unaffected by the swap.
@@ -95,6 +102,8 @@ namespace FullVid.Dialogs
         private async void OnDialogLoaded(object sender, RoutedEventArgs e)
         {
             GetRouter()?.Register(this);
+
+            SetupHintBar();
 
             // Keyboard parity. Wire on the hosting window (tunneling PreviewKeyDown) so keys
             // are caught before WebView2 focus swallows them.
@@ -144,6 +153,67 @@ namespace FullVid.Dialogs
             Web.CoreWebView2.AddWebResourceRequestedFilter(PlayerPageUrl, CoreWebView2WebResourceContext.All);
             Web.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             Web.CoreWebView2.Navigate(PlayerPageUrl);
+        }
+
+        // Choose the hint-bar style from settings. FrostedBlur floats the glass bar over the
+        // video and starts the throttled snapshot timer; Performance shows the plain strip below.
+        private void SetupHintBar()
+        {
+            _frosted = _settings?.PlayerBarStyle != PlayerBarStyle.Performance;
+
+            if (_frosted)
+            {
+                FrostedBar.Visibility = Visibility.Visible;
+                PerfBar.Visibility = Visibility.Collapsed;
+                PerfBarRow.Height = new GridLength(0);
+
+                _frostTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+                {
+                    Interval = TimeSpan.FromMilliseconds(1000.0 / FrostFps)
+                };
+                _frostTimer.Tick += UpdateFrostBacking;
+                _frostTimer.Start();
+            }
+            else
+            {
+                FrostedBar.Visibility = Visibility.Collapsed;
+                PerfBar.Visibility = Visibility.Visible;
+                PerfBarRow.Height = GridLength.Auto;
+            }
+        }
+
+        // Throttled frosted backing: snapshot the video's bottom strip into FrostedBacking at
+        // FrostFps (not the video's framerate). Renders the WebView2 visual to a small RTB and
+        // shifts it up so only the bottom band shows behind the bar — the BlurEffect on the Image
+        // hides the low resolution and softens the result into frosted glass.
+        private void UpdateFrostBacking(object sender, EventArgs e)
+        {
+            try
+            {
+                if (Web == null || Web.ActualWidth < 1 || FrostedBar.ActualHeight < 1)
+                    return;
+
+                var w = (int)Web.ActualWidth;
+                var h = (int)Web.ActualHeight;
+                if (w < 1 || h < 1) return;
+
+                if (_frostRtb == null || _frostRtb.PixelWidth != w || _frostRtb.PixelHeight != h)
+                    _frostRtb = new System.Windows.Media.Imaging.RenderTargetBitmap(w, h, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+
+                _frostRtb.Clear();
+                _frostRtb.Render(Web);
+
+                // Crop to the bottom strip (bar height) so the Image shows just that band.
+                var barH = (int)Math.Min(FrostedBar.ActualHeight, h);
+                var y = h - barH;
+                var crop = new System.Windows.Media.Imaging.CroppedBitmap(_frostRtb, new Int32Rect(0, y, w, barH));
+                FrostedBacking.Source = crop;
+            }
+            catch (Exception ex)
+            {
+                // Snapshot can fail while the video is mid-composite — skip this frame, keep the last.
+                Logger.Debug(ex, "Frost backing snapshot skipped");
+            }
         }
 
         // Virtual origin for our hosted player page. A real https host name is what makes
@@ -196,6 +266,13 @@ namespace FullVid.Dialogs
             {
                 w.Closed -= OnWindowClosed;
                 w.PreviewKeyDown -= OnPreviewKeyDown;
+            }
+
+            if (_frostTimer != null)
+            {
+                _frostTimer.Stop();
+                _frostTimer.Tick -= UpdateFrostBacking;
+                _frostTimer = null;
             }
 
             if (_upsPaused)

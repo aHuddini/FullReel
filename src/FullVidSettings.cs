@@ -23,6 +23,13 @@ namespace FullVid
         P480        // up to 480p
     }
 
+    // How the player's controls hint bar is rendered.
+    public enum PlayerBarStyle
+    {
+        FrostedBlur,  // translucent bar floating over the video with a live blurred backing
+        Performance   // plain translucent strip below the video — no blur, no overlay (cheapest)
+    }
+
     // Persisted plugin settings. Plain ObservableObject; the ISettings lifecycle
     // (BeginEdit/EndEdit/CancelEdit/VerifySettings) lives on FullVidSettingsViewModel,
     // which Playnite treats as the settings object (GetSettings) and sets as DataContext.
@@ -38,6 +45,11 @@ namespace FullVid
         // its folder is prepended to the yt-dlp process PATH so yt-dlp discovers it.
         private string denoPath = string.Empty;
         public string DenoPath { get => denoPath; set { denoPath = value ?? string.Empty; OnPropertyChanged(); } }
+
+        // FrostedBlur = glass bar over the video (live blurred backing). Performance = plain strip
+        // below the video, no blur — lighter on the GPU.
+        private PlayerBarStyle playerBarStyle = PlayerBarStyle.FrostedBlur;
+        public PlayerBarStyle PlayerBarStyle { get => playerBarStyle; set { playerBarStyle = value; OnPropertyChanged(); } }
 
         private int searchResultCount = 10;
         public int SearchResultCount { get => searchResultCount; set { searchResultCount = value; OnPropertyChanged(); } }

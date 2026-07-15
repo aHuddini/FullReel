@@ -14,40 +14,11 @@
                 <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </UserControl.Resources>
 
-    <!-- WebView2CompositionControl composes into the WPF visual tree, so we can render over the
-         video. The hint bar is real frosted glass: a live VisualBrush of the video's bottom strip
-         is blurred behind the text, so you see the (blurred) video through the bar instead of an
-         opaque block. The brush samples only the bottom band of the video (Viewbox), so it's cheap
-         — one small blurred region, not the whole frame. Requires WebView2 runtime 132+. -->
-    <Grid Background="#212121">
-        <wv2:WebView2CompositionControl x:Name="Web" DefaultBackgroundColor="Black"/>
-
-        <Grid x:Name="HintBar" VerticalAlignment="Bottom" Height="48">
-            <!-- Frosted backing: blurred live slice of the video behind the bar. Viewbox maps to
-                 the bottom ~7% of the source so the brush samples just this strip's worth of video.
-                 LowQuality scaling + the blur mean the sampled region can be coarse and cheap. -->
-            <Rectangle RenderOptions.BitmapScalingMode="LowQuality">
-                <Rectangle.Fill>
-                    <VisualBrush Visual="{Binding ElementName=Web}"
-                                 Stretch="Fill"
-                                 ViewboxUnits="RelativeToBoundingBox"
-                                 Viewbox="0,0.93,1,0.07"/>
-                </Rectangle.Fill>
-                <Rectangle.Effect>
-                    <BlurEffect Radius="30" KernelType="Gaussian" RenderingBias="Performance"/>
-                </Rectangle.Effect>
-            </Rectangle>
-
-            <!-- Dark glass tint + top highlight so text stays legible over any video. -->
-            <Border Background="#59151515" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0"/>
-
-            <TextBlock VerticalAlignment="Center"
-                       FontSize="14"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap">
+            <!-- Shared controls legend. x:Shared=False so the same markup can back both bar
+                 styles (a FrameworkElement can't have two parents). -->
+            <TextBlock x:Key="HintText" x:Shared="False"
+                       FontSize="14" TextAlignment="Center" TextWrapping="Wrap">
                 <Run Text="A / Space" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Play/Pause" Foreground="#F5F5F5"/>
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="◄ ►" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Seek 10s" Foreground="#F5F5F5"/>
@@ -58,6 +29,40 @@
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Two hint-bar styles, chosen by the PlayerBarStyle setting (code-behind toggles them):
+         • FrostedBlur: bar floats over the video; its backing is a throttled blurred snapshot of
+           the video's bottom strip (real frosted glass). WebView2CompositionControl composes into
+           the WPF tree so overlaying the video works. Requires WebView2 runtime 132+.
+         • Performance: plain translucent strip BELOW the video — no blur, no overlay, cheapest. -->
+    <Grid Background="#212121">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>                        <!-- Player -->
+            <RowDefinition x:Name="PerfBarRow" Height="Auto"/>  <!-- Performance strip (collapsed in frosted mode) -->
+        </Grid.RowDefinitions>
+
+        <wv2:WebView2CompositionControl Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
+
+        <!-- FROSTED: overlays the bottom of the video (Grid.Row=0). Backing image is filled by a
+             throttled RenderTargetBitmap snapshot (see code-behind) so the blur cost is decoupled
+             from the video framerate. Hidden in Performance mode. -->
+        <Grid x:Name="FrostedBar" Grid.Row="0" VerticalAlignment="Bottom" Height="48" Visibility="Collapsed">
+            <Image x:Name="FrostedBacking" Stretch="Fill" RenderOptions.BitmapScalingMode="LowQuality">
+                <Image.Effect>
+                    <BlurEffect Radius="30" KernelType="Gaussian" RenderingBias="Performance"/>
+                </Image.Effect>
+            </Image>
+            <Border Background="#59151515" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0"/>
+            <ContentControl VerticalAlignment="Center" Content="{StaticResource HintText}"/>
         </Grid>
+
+        <!-- PERFORMANCE: plain strip in its own row below the video. Hidden in frosted mode. -->
+        <Border x:Name="PerfBar" Grid.Row="1"
+                Background="#5C1A1A1A" BorderBrush="#33FFFFFF" BorderThickness="0,1,0,0"
+                Padding="0,11,0,11" Visibility="Collapsed">
+            <ContentControl Content="{StaticResource HintText}"/>
+        </Border>
     </Grid>
 </UserControl>

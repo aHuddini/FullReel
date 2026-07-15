@@ -18,6 +18,11 @@
                 <x:Type TypeName="local:CookieMode"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
+        <ObjectDataProvider x:Key="PlayerBarStyleValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="local:PlayerBarStyle"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -50,6 +55,17 @@
                 <TextBlock Text="{Binding DenoStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
             </StackPanel>
             <TextBlock Text="deno is yt-dlp's JS runtime — YouTube now needs it to decode video streams. Without it, search and downloads may return nothing."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
+
+            <Separator Margin="0,16"/>
+
+            <TextBlock Text="Player" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Controls bar:" VerticalAlignment="Center" Width="110"/>
+                <ComboBox Width="160" SelectedItem="{Binding Settings.PlayerBarStyle}"
+                          ItemsSource="{Binding Source={StaticResource PlayerBarStyleValues}}"/>
+            </StackPanel>
+            <TextBlock Text="FrostedBlur: glass bar over the video with a live blurred backing. Performance: plain strip below the video — lighter on the GPU if you see stutter."
                        FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
 
             <Separator Margin="0,16"/>
