@@ -42,6 +42,7 @@ namespace FullVid.Dialogs
         private readonly FullVidSettings _settings;
         private readonly UniPlaySongBridge _bridge;
         private readonly VideoResult _video;
+        private readonly Action<VideoResult> _onDownload;
         private readonly bool _swapAB;
 
         // Guard so we only Resume() UPS if we actually Paused() it (setting was on).
@@ -71,7 +72,8 @@ namespace FullVid.Dialogs
             IPlayniteAPI api,
             VideoResult video,
             FullVidSettings settings,
-            UniPlaySongBridge bridge)
+            UniPlaySongBridge bridge,
+            Action<VideoResult> onDownload = null)
         {
             InitializeComponent();
 
@@ -79,6 +81,7 @@ namespace FullVid.Dialogs
             _video = video;
             _settings = settings;
             _bridge = bridge;
+            _onDownload = onDownload;
 
             // Read the confirm/cancel swap once, up front. Read-only SDK property; default
             // to un-swapped on any failure so A always confirms in the worst case.
@@ -204,9 +207,8 @@ namespace FullVid.Dialogs
                         if (TryDpad()) Script("if(window.player){player.setVolume(Math.max(0,player.getVolume()-10));}");
                         break;
                     case PlayerAction.Download:
-                        DialogHelper.ShowControllerConfirmation(_api,
-                            "Download \"" + (_video?.Title ?? "") + "\"?\n\nDownloading arrives in the next update.",
-                            "FullVid");
+                        // Close the player first, then hand off to the caller's download flow.
+                        _onDownload?.Invoke(_video);
                         break;
                     case PlayerAction.Close:
                         Window.GetWindow(this)?.Close();

@@ -114,14 +114,12 @@ namespace FullVid
                 onWatch: v =>
                 {
                     window?.Close();
-                    WatchVideo(v);
+                    WatchVideo(game, v);
                 },
                 onDownload: v =>
                 {
                     window?.Close();
-                    DialogHelper.ShowControllerConfirmation(_api,
-                        "Download \"" + v.Title + "\"?\n\nDownloading arrives in the next update.",
-                        "FullVid");
+                    DownloadVideo(game, v);
                 },
                 onClose: () => window?.Close());
 
@@ -132,16 +130,65 @@ namespace FullVid
 
         // Opens the fullscreen WebView2 player for the chosen result. The bridge (default
         // ProcessUriInvoker) pauses/resumes UniPlaySong around playback; settings decide
-        // whether that happens at all.
-        private void WatchVideo(VideoResult video)
+        // whether that happens at all. Y in the player routes back through DownloadVideo.
+        private void WatchVideo(Game game, VideoResult video)
         {
             var settings = _settingsViewModel.Settings;
             var bridge = new UniPlaySongBridge(new ProcessUriInvoker());
-            var player = new VideoPlayerDialog(_api, video, settings, bridge);
 
-            var window = DialogHelper.CreateFullscreenDialog(_api, player, "FullVid: " + (video?.Title ?? "Player"), 1280, 760, IsFullscreen);
+            Window window = null;
+            var player = new VideoPlayerDialog(_api, video, settings, bridge,
+                onDownload: v =>
+                {
+                    window?.Close();
+                    DownloadVideo(game, v);
+                });
+
+            window = DialogHelper.CreateFullscreenDialog(_api, player, "FullVid: " + (video?.Title ?? "Player"), 1280, 760, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "WatchVideo");
             window.ShowDialog();
+        }
+
+        // Downloads the chosen video, transcodes it to EML's format, and lands it as the
+        // game's VideoTrailer.mp4. Runs under a cancelable global-progress dialog (mirrors
+        // FindVideos). On success, tells the user to re-select the game — EML has no
+        // filewatcher; it re-scans the trailer folder only when the game selection changes.
+        private void DownloadVideo(Game game, VideoResult video)
+        {
+            var settings = _settingsViewModel.Settings;
+            var service = new VideoDownloadService(
+                settings,
+                _api.Paths.ConfigurationPath,
+                System.IO.Path.Combine(GetPluginUserDataPath(), "temp"),
+                _fileLogger);
+
+            var ok = false;
+            _api.Dialogs.ActivateGlobalProgress(gp =>
+            {
+                var progress = new Progress<string>(text => gp.Text = text);
+                try
+                {
+                    ok = service.DownloadAsync(video, game, progress, gp.CancelToken).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    _fileLogger?.Error("Download failed: " + ex.Message);
+                }
+            }, new GlobalProgressOptions("Downloading trailer...") { Cancelable = true, IsIndeterminate = true });
+
+            if (ok)
+            {
+                _api.Dialogs.ShowMessage(
+                    "Trailer downloaded for \"" + (game.Name ?? "game") + "\".\n\n" +
+                    "Re-select the game so ExtraMetadataLoader picks up the new trailer.",
+                    "FullVid");
+            }
+            else
+            {
+                _api.Dialogs.ShowErrorMessage(
+                    "Trailer download failed. Check that yt-dlp and FFmpeg are configured in FullVid settings.",
+                    "FullVid");
+            }
         }
 
         // Fullscreen-mode controller input. State semantics match UniPlaySong's RouteControllerInput:
