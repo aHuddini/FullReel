@@ -52,6 +52,13 @@ namespace FullVid
             }
         });
 
+        public ICommand BrowseCookiesFile => new RelayCommand(() =>
+        {
+            var path = plugin.PlayniteApi.Dialogs.SelectFile("Cookies file|*.txt|All files|*.*");
+            if (!string.IsNullOrWhiteSpace(path))
+                settings.CustomCookiesFilePath = path;
+        });
+
         // Re-probe both tools and refresh the status strings. Called on settings open
         // (BeginEdit) and after each Browse. Cheap: ToolProbe caches by path+mtime.
         private void UpdateToolStatus()

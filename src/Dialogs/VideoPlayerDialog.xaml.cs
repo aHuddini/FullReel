@@ -150,6 +150,19 @@ namespace FullVid.Dialogs
                 _bridge?.Resume();
                 _upsPaused = false;
             }
+
+            // Dispose WebView2 or its msedgewebview2.exe host lingers until GC. Unhook the
+            // nav handler first; Dispose can throw if the core never initialized — swallow it.
+            try
+            {
+                if (Web?.CoreWebView2 != null)
+                    Web.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+                Web?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error disposing WebView2");
+            }
         }
 
         // Bootstrap the YT IFrame Player API so `player.playVideo()` etc. work. The embed

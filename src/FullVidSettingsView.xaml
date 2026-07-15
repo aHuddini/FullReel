@@ -68,6 +68,11 @@
                 <ComboBox Width="140" SelectedItem="{Binding Settings.CookiesSource}"
                           ItemsSource="{Binding Source={StaticResource CookieModeValues}}"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Custom cookies file:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.CustomCookiesFilePath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                <Button Content="Browse..." Width="80" Command="{Binding BrowseCookiesFile}"/>
+            </StackPanel>
             <CheckBox Content="Pause UniPlaySong while a trailer plays"
                       IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,10,0,0"/>
 

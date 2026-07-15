@@ -67,7 +67,6 @@ namespace FullVid
         }
 
         // Search YouTube for the game, then show the controller-navigable results dialog.
-        // Watch/Download are stubbed here (Tasks 6/7 wire the real player/download).
         private void FindVideos(Game game)
         {
             var settings = _settingsViewModel.Settings;
