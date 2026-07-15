@@ -210,7 +210,7 @@ namespace FullVid.Dialogs
                 "pointer-events:none;padding:13px 8px;text-align:center;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
                 "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
-                "backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);\">" +
+                "backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);\">" +
                 "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">◄ ►</b> Seek 10s" +
