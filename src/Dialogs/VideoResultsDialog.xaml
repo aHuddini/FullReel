@@ -1,0 +1,111 @@
+<UserControl x:Class="FullVid.Dialogs.VideoResultsDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="720"
+             Focusable="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Result card container: highlights on selection for controller navigation. -->
+            <Style x:Key="ResultCardStyle" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                <Setter Property="Margin" Value="4"/>
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#2196F3"/>
+                        <Setter Property="BorderBrush" Value="#1976D2"/>
+                        <Setter Property="BorderThickness" Value="3"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Title -->
+            <RowDefinition Height="Auto"/>  <!-- Controller hint -->
+            <RowDefinition Height="*"/>     <!-- Results list -->
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Name="DialogTitle"
+                   Text="Find Videos"
+                   FontSize="24"
+                   FontWeight="Bold"
+                   Margin="0,0,0,12"
+                   HorizontalAlignment="Center"
+                   Foreground="White"/>
+
+        <TextBlock Grid.Row="1"
+                   FontSize="13"
+                   Foreground="#BBBBBB"
+                   TextAlignment="Center"
+                   Margin="0,0,0,12"
+                   Text="A: Watch  •  Y: Download  •  B: Close  •  D-Pad Up/Down: Navigate"/>
+
+        <!-- KeyboardNavigation.DirectionalNavigation="None" so D-pad→arrow translation
+             doesn't double-navigate alongside our own XInput handler. -->
+        <ListBox Grid.Row="2"
+                 Name="ResultsListBox"
+                 ItemContainerStyle="{StaticResource ResultCardStyle}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 KeyboardNavigation.DirectionalNavigation="None">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Thumbnail with duration badge overlay -->
+                        <Grid Grid.Column="0" Width="160" Height="90" Margin="0,0,12,0">
+                            <Border Background="#1A1A1A" CornerRadius="4"/>
+                            <Image Source="{Binding Thumbnail}"
+                                   Stretch="UniformToFill"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Border HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Background="#CC000000"
+                                    CornerRadius="3"
+                                    Padding="5,1"
+                                    Margin="0,0,4,4">
+                                <TextBlock Text="{Binding Duration}"
+                                           Foreground="White"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Title + channel + views -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}"
+                                       Foreground="White"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       TextWrapping="Wrap"
+                                       MaxHeight="48"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding SubLine}"
+                                       Foreground="#BBBBBB"
+                                       FontSize="13"
+                                       Margin="0,6,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>
