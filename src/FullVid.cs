@@ -75,7 +75,9 @@ namespace FullVid
             };
         }
 
-        // Search YouTube for the game, then show the controller-navigable results dialog.
+        // Opens the results dialog immediately, then searches YouTube in the background and
+        // pushes results into the open window — the UI never blocks on yt-dlp. Closing the
+        // window cancels the in-flight search.
         private void FindVideos(Game game)
         {
             var settings = _settingsViewModel.Settings;
@@ -91,34 +93,11 @@ namespace FullVid
 
             var query = (settings.QueryTemplate ?? string.Empty).Replace("{name}", game.Name ?? string.Empty);
             var count = settings.SearchResultCount;
-
-            List<VideoResult> results = null;
-            _api.Dialogs.ActivateGlobalProgress(progress =>
-            {
-                progress.Text = "Searching YouTube for \"" + query + "\"...";
-                var search = new YouTubeSearchService(ytDlpPath);
-                try
-                {
-                    results = search.SearchAsync(query, count, progress.CancelToken).GetAwaiter().GetResult();
-                }
-                catch (Exception ex)
-                {
-                    _fileLogger?.Error("YouTube search failed: " + ex.Message);
-                }
-            }, new GlobalProgressOptions("Searching...") { Cancelable = true, IsIndeterminate = true });
-
-            if (results == null || results.Count == 0)
-            {
-                _api.Dialogs.ShowMessage(
-                    "No videos found for \"" + query + "\".",
-                    "FullVid");
-                return;
-            }
+            var cts = new CancellationTokenSource();
 
             Window window = null;
             var dialog = new VideoResultsDialog(
                 _api,
-                results,
                 onWatch: v =>
                 {
                     window?.Close();
@@ -133,7 +112,34 @@ namespace FullVid
 
             window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid: Find Videos", 760, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
+
+            // Cancel the search if the user closes the window before it finishes.
+            window.Closed += (s, e) => cts.Cancel();
+            dialog.SetStatus("Searching for \"" + query + "\"…");
+
+            // Fire the search off-thread; marshal the outcome back onto the dialog (which
+            // dispatches to the UI thread itself). Guarded so a cancel/failure never throws
+            // into an unobserved task.
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                try
+                {
+                    var search = new YouTubeSearchService(ytDlpPath);
+                    var results = await search.SearchAsync(query, count, cts.Token).ConfigureAwait(false);
+                    if (!cts.IsCancellationRequested)
+                        dialog.SetResults(results);
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    _fileLogger?.Error("YouTube search failed: " + ex.Message);
+                    if (!cts.IsCancellationRequested)
+                        dialog.SetStatus("Search failed. Check yt-dlp in settings.");
+                }
+            });
+
             window.ShowDialog();
+            cts.Dispose();
         }
 
         // Opens the fullscreen WebView2 player for the chosen result. The bridge (default

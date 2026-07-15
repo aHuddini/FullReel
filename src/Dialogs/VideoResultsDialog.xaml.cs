@@ -67,7 +67,6 @@ namespace FullVid.Dialogs
 
         public VideoResultsDialog(
             IPlayniteAPI api,
-            IEnumerable<VideoResult> results,
             Action<VideoResult> onWatch,
             Action<VideoResult> onDownload,
             Action onClose)
@@ -84,17 +83,53 @@ namespace FullVid.Dialogs
             try { _swapAB = api?.ApplicationSettings?.Fullscreen?.SwapConfirmCancelButtons ?? false; }
             catch { _swapAB = false; }
 
-            foreach (var r in results ?? Enumerable.Empty<VideoResult>())
-                _rows.Add(new ResultRow(r));
-
+            // Opens empty in a "Searching…" state; the caller pushes results via SetResults
+            // once its background search completes — the window never blocks on the search.
             ResultsListBox.ItemsSource = _rows;
 
             Loaded += OnDialogLoaded;
             Unloaded += OnDialogUnloaded;
         }
 
+        // Called on the UI thread when the background search returns. Populates the list,
+        // hides the status line, and selects the first row. Marshals itself if off-thread.
+        public void SetResults(IEnumerable<VideoResult> results)
+        {
+            if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(() => SetResults(results)); return; }
+
+            _rows.Clear();
+            foreach (var r in results ?? Enumerable.Empty<VideoResult>())
+                _rows.Add(new ResultRow(r));
+
+            if (_rows.Count > 0)
+            {
+                StatusText.Visibility = Visibility.Collapsed;
+                ResultsListBox.SelectedIndex = 0;
+                ResultsListBox.ScrollIntoView(ResultsListBox.SelectedItem);
+                ResultsListBox.Focus();
+            }
+            else
+            {
+                SetStatus("No videos found.");
+            }
+        }
+
+        // Shows a status message (search error / empty) in place of the list.
+        public void SetStatus(string message)
+        {
+            if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(() => SetStatus(message)); return; }
+            StatusText.Text = message ?? string.Empty;
+            StatusText.Visibility = Visibility.Visible;
+        }
+
         private void OnDialogLoaded(object sender, RoutedEventArgs e)
         {
+            // Keyboard parity with the controller — the UserControl is focusable and gets
+            // key events before the ListBox, so arrows/Enter/Esc route through our own path.
+            PreviewKeyDown += OnPreviewKeyDown;
+            Focusable = true;
+            Focus();
+
             if (_rows.Count > 0)
             {
                 ResultsListBox.SelectedIndex = 0;
@@ -106,7 +141,29 @@ namespace FullVid.Dialogs
 
         private void OnDialogUnloaded(object sender, RoutedEventArgs e)
         {
+            PreviewKeyDown -= OnPreviewKeyDown;
             GetRouter()?.Unregister(this);
+        }
+
+        // Keyboard parity with the controller: Enter=Watch, Esc/Back=Close, Up/Down=Navigate,
+        // D=Download. Routes through the same DialogAction dispatch. No debounce — key repeat
+        // on a list is expected; the XInput+WPF double-fire that needs gating is D-pad only.
+        private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            DialogAction action;
+            switch (e.Key)
+            {
+                case System.Windows.Input.Key.Enter: action = _rows.Count > 0 ? DialogAction.Watch : DialogAction.None; break;
+                case System.Windows.Input.Key.Escape:
+                case System.Windows.Input.Key.Back: action = DialogAction.Close; break;
+                case System.Windows.Input.Key.Up: action = DialogAction.NavigateUp; break;
+                case System.Windows.Input.Key.Down: action = DialogAction.NavigateDown; break;
+                case System.Windows.Input.Key.D: action = _rows.Count > 0 ? DialogAction.Download : DialogAction.None; break;
+                default: return;
+            }
+
+            e.Handled = true;
+            DispatchAction(action, keyboard: true);
         }
 
         private ControllerEventRouter GetRouter()
@@ -124,28 +181,35 @@ namespace FullVid.Dialogs
             try
             {
                 var action = Decide(button, ResultsListBox.SelectedIndex, _rows.Count, _swapAB);
-                switch (action)
-                {
-                    case DialogAction.Watch:
-                        InvokeWithSelected(_onWatch);
-                        break;
-                    case DialogAction.Download:
-                        InvokeWithSelected(_onDownload);
-                        break;
-                    case DialogAction.Close:
-                        _onClose?.Invoke();
-                        break;
-                    case DialogAction.NavigateUp:
-                        if (TryDpadNavigation()) Navigate(-1);
-                        break;
-                    case DialogAction.NavigateDown:
-                        if (TryDpadNavigation()) Navigate(1);
-                        break;
-                }
+                DispatchAction(action, keyboard: false);
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error handling controller input in VideoResultsDialog");
+            }
+        }
+
+        // Shared action dispatch for both controller and keyboard. keyboard=true skips the
+        // D-pad debounce (that gate only exists for the XInput+WPF double-fire, not keys).
+        private void DispatchAction(DialogAction action, bool keyboard)
+        {
+            switch (action)
+            {
+                case DialogAction.Watch:
+                    InvokeWithSelected(_onWatch);
+                    break;
+                case DialogAction.Download:
+                    InvokeWithSelected(_onDownload);
+                    break;
+                case DialogAction.Close:
+                    _onClose?.Invoke();
+                    break;
+                case DialogAction.NavigateUp:
+                    if (keyboard || TryDpadNavigation()) Navigate(-1);
+                    break;
+                case DialogAction.NavigateDown:
+                    if (keyboard || TryDpadNavigation()) Navigate(1);
+                    break;
             }
         }
 

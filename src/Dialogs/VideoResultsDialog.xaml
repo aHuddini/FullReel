@@ -51,7 +51,18 @@
                    Foreground="#BBBBBB"
                    TextAlignment="Center"
                    Margin="0,0,0,12"
-                   Text="A: Watch  •  Y: Download  •  B: Close  •  D-Pad Up/Down: Navigate"/>
+                   Text="A / Enter: Watch  •  Y / D: Download  •  B / Esc: Close  •  D-Pad / Arrows: Navigate"/>
+
+        <!-- Status line: shown while searching or when a search yields nothing/errors.
+             Collapsed once results arrive so it doesn't take list space. -->
+        <TextBlock Grid.Row="2"
+                   Name="StatusText"
+                   FontSize="15"
+                   Foreground="#DDDDDD"
+                   TextAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap"
+                   Text="Searching…"/>
 
         <!-- KeyboardNavigation.DirectionalNavigation="None" so D-pad→arrow translation
              doesn't double-navigate alongside our own XInput handler. -->

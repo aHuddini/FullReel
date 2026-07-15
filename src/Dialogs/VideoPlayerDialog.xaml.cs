@@ -96,9 +96,14 @@ namespace FullVid.Dialogs
         {
             GetRouter()?.Register(this);
 
+            // Keyboard parity. Wire on the hosting window (tunneling PreviewKeyDown) so keys
+            // are caught before WebView2 focus swallows them.
+            var window = Window.GetWindow(this);
+            if (window != null)
+                window.PreviewKeyDown += OnPreviewKeyDown;
+
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
-            var window = Window.GetWindow(this);
             if (window != null)
                 window.Closed += OnWindowClosed;
 
@@ -143,7 +148,10 @@ namespace FullVid.Dialogs
         private void OnWindowClosed(object sender, EventArgs e)
         {
             if (sender is Window w)
+            {
                 w.Closed -= OnWindowClosed;
+                w.PreviewKeyDown -= OnPreviewKeyDown;
+            }
 
             if (_upsPaused)
             {
@@ -200,33 +208,7 @@ namespace FullVid.Dialogs
         {
             try
             {
-                switch (Decide(button, _swapAB))
-                {
-                    case PlayerAction.PlayPause:
-                        // Toggle via the player's own state so one A press flips play<->pause.
-                        Script("if(window.player){var s=player.getPlayerState&&player.getPlayerState();" +
-                               "if(s===1){player.pauseVideo();}else{player.playVideo();}}");
-                        break;
-                    case PlayerAction.SeekForward:
-                        if (TryDpad()) Script("if(window.player){player.seekTo(player.getCurrentTime()+10,true);}");
-                        break;
-                    case PlayerAction.SeekBackward:
-                        if (TryDpad()) Script("if(window.player){player.seekTo(Math.max(0,player.getCurrentTime()-10),true);}");
-                        break;
-                    case PlayerAction.VolumeUp:
-                        if (TryDpad()) Script("if(window.player){player.setVolume(Math.min(100,player.getVolume()+10));}");
-                        break;
-                    case PlayerAction.VolumeDown:
-                        if (TryDpad()) Script("if(window.player){player.setVolume(Math.max(0,player.getVolume()-10));}");
-                        break;
-                    case PlayerAction.Download:
-                        // Close the player first, then hand off to the caller's download flow.
-                        _onDownload?.Invoke(_video);
-                        break;
-                    case PlayerAction.Close:
-                        Window.GetWindow(this)?.Close();
-                        break;
-                }
+                DispatchAction(Decide(button, _swapAB), keyboard: false);
             }
             catch (Exception ex)
             {
@@ -235,6 +217,60 @@ namespace FullVid.Dialogs
         }
 
         public void OnControllerButtonReleased(ControllerInput button) { }
+
+        // Keyboard parity with the controller: Space/K=play/pause, Esc=close, Left/Right=seek,
+        // Up/Down=volume, D=download. Routes through the same PlayerAction dispatch. keyboard=true
+        // skips the seek/volume debounce (that gate is for the XInput+WPF double-fire only).
+        private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            PlayerAction action;
+            switch (e.Key)
+            {
+                case System.Windows.Input.Key.Space:
+                case System.Windows.Input.Key.K: action = PlayerAction.PlayPause; break;
+                case System.Windows.Input.Key.Escape: action = PlayerAction.Close; break;
+                case System.Windows.Input.Key.Right: action = PlayerAction.SeekForward; break;
+                case System.Windows.Input.Key.Left: action = PlayerAction.SeekBackward; break;
+                case System.Windows.Input.Key.Up: action = PlayerAction.VolumeUp; break;
+                case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
+                case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
+                default: return;
+            }
+
+            e.Handled = true;
+            DispatchAction(action, keyboard: true);
+        }
+
+        private void DispatchAction(PlayerAction action, bool keyboard)
+        {
+            switch (action)
+            {
+                case PlayerAction.PlayPause:
+                    // Toggle via the player's own state so one press flips play<->pause.
+                    Script("if(window.player){var s=player.getPlayerState&&player.getPlayerState();" +
+                           "if(s===1){player.pauseVideo();}else{player.playVideo();}}");
+                    break;
+                case PlayerAction.SeekForward:
+                    if (keyboard || TryDpad()) Script("if(window.player){player.seekTo(player.getCurrentTime()+10,true);}");
+                    break;
+                case PlayerAction.SeekBackward:
+                    if (keyboard || TryDpad()) Script("if(window.player){player.seekTo(Math.max(0,player.getCurrentTime()-10),true);}");
+                    break;
+                case PlayerAction.VolumeUp:
+                    if (keyboard || TryDpad()) Script("if(window.player){player.setVolume(Math.min(100,player.getVolume()+10));}");
+                    break;
+                case PlayerAction.VolumeDown:
+                    if (keyboard || TryDpad()) Script("if(window.player){player.setVolume(Math.max(0,player.getVolume()-10));}");
+                    break;
+                case PlayerAction.Download:
+                    // Hand off to the caller's download flow (which closes the player).
+                    _onDownload?.Invoke(_video);
+                    break;
+                case PlayerAction.Close:
+                    Window.GetWindow(this)?.Close();
+                    break;
+            }
+        }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
         // navigation has completed.
