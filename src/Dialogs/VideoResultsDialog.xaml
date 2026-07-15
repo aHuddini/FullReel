@@ -46,12 +46,27 @@
                    HorizontalAlignment="Center"
                    Foreground="White"/>
 
-        <TextBlock Grid.Row="1"
-                   FontSize="13"
-                   Foreground="#BBBBBB"
-                   TextAlignment="Center"
-                   Margin="0,0,0,12"
-                   Text="A / Enter: Watch  •  Y / D: Download  •  B / Esc: Close  •  D-Pad / Arrows: Navigate"/>
+        <!-- Frosted-glass hint strip: translucent panel, accent keys, top highlight line. -->
+        <Border Grid.Row="1"
+                Background="#B0141414"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="0,1,0,1"
+                CornerRadius="4"
+                Padding="0,8,0,8"
+                Margin="0,0,0,12">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="0" Opacity="0.5"/>
+            </Border.Effect>
+            <TextBlock FontSize="14" TextAlignment="Center" TextWrapping="Wrap">
+                <Run Text="A / Enter" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Watch" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="Y / D" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Download" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="D-Pad / Arrows" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Navigate" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
+            </TextBlock>
+        </Border>
 
         <!-- Status line: shown while searching or when a search yields nothing/errors.
              Collapsed once results arrive so it doesn't take list space. -->

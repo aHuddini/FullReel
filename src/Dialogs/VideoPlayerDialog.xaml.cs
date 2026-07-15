@@ -117,7 +117,11 @@ namespace FullVid.Dialogs
 
             try
             {
-                await Web.EnsureCoreWebView2Async(null);
+                // --autoplay-policy=no-user-gesture-required so the picked video starts on load
+                // instead of waiting for an A/Space press (WebView2 blocks autoplay by default).
+                var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
+                var env = await CoreWebView2Environment.CreateAsync(null, null, options);
+                await Web.EnsureCoreWebView2Async(env);
             }
             catch (Exception ex)
             {

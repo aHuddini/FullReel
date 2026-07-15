@@ -17,19 +17,34 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!-- Single-cell grid: the glass hint bar floats OVER the bottom of the video. WPF can't
+         blur the WebView2 content behind it (separate airspace HWND), so the frosted look is a
+         translucent dark panel with a top highlight line + drop shadow — reads as glass on the
+         video without needing a real backdrop blur. -->
     <Grid Background="#212121">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>     <!-- Player -->
-            <RowDefinition Height="Auto"/>  <!-- Controller hint -->
-        </Grid.RowDefinitions>
+        <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="Black"/>
 
-        <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
-
-        <TextBlock Grid.Row="1"
-                   FontSize="13"
-                   Foreground="#BBBBBB"
-                   TextAlignment="Center"
-                   Margin="0,8,0,8"
-                   Text="A: Play/Pause  •  D-Pad L/R: Seek 10s  •  D-Pad U/D: Volume  •  Y: Download  •  B: Close"/>
+        <Border VerticalAlignment="Bottom"
+                Background="#B0141414"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="0,1,0,0"
+                Padding="0,11,0,11">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.55"/>
+            </Border.Effect>
+            <TextBlock FontSize="14"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap">
+                <Run Text="A / Space" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Play/Pause" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="◄ ►" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Seek 10s" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="▲ ▼" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Volume" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="Y / D" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Download" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
+            </TextBlock>
+        </Border>
     </Grid>
 </UserControl>
