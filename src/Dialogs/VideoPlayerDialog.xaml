@@ -17,14 +17,18 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Single-cell grid: the glass hint bar floats OVER the bottom of the video. WPF can't
-         blur the WebView2 content behind it (separate airspace HWND), so the frosted look is a
-         translucent dark panel with a top highlight line + drop shadow — reads as glass on the
-         video without needing a real backdrop blur. -->
+    <!-- WebView2 is a separate airspace HWND that paints on top of all WPF content, so the hint
+         bar CANNOT overlay the video (it'd be hidden behind it). It gets its own row below the
+         video. Glass styling (translucent panel + top highlight + shadow) is kept. -->
     <Grid Background="#212121">
-        <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="Black"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>     <!-- Player -->
+            <RowDefinition Height="Auto"/>  <!-- Controls hint -->
+        </Grid.RowDefinitions>
 
-        <Border VerticalAlignment="Bottom"
+        <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
+
+        <Border Grid.Row="1"
                 Background="#B0141414"
                 BorderBrush="#33FFFFFF"
                 BorderThickness="0,1,0,0"
