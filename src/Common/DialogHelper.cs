@@ -103,7 +103,9 @@ namespace FullVid.Common
                 Height = height,
                 Content = content,
                 Background = new SolidColorBrush(DefaultDarkBackground),
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                // Center on the monitor, not the owner window — a video player should sit
+                // dead-center regardless of where Playnite's window is.
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 Topmost = isFullscreenMode,
                 ShowInTaskbar = !isFullscreenMode
             };

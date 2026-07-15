@@ -231,19 +231,21 @@ namespace FullVid.Dialogs
                 "function onYouTubeIframeAPIReady(){" +
                 "  player=new YT.Player('p',{videoId:'" + safeId + "'," +
                 "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1}," +
-                // Hide the top bar only once the video actually starts PLAYING (state 1), not on a
-                // blind load timer — so it's clearly visible while the video buffers.
-                "    events:{onStateChange:function(e){if(e.data===1)fvHideTopSoon();}}});" +
+                // Once the video reaches PLAYING (state 1), start the hide timer — so the bar is
+                // clearly visible while the video buffers, then auto-hides.
+                "    events:{onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
                 "}" +
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
-                // Auto-hiding top bar. fvShowTop() reveals it (C# pokes this on any input);
-                // fvHideTopSoon() slides it up after 4s. Starts visible.
-                "var _tt;var _tb=function(){return document.getElementById('tbar');};" +
-                "window.fvHideTopSoon=function(){clearTimeout(_tt);_tt=setTimeout(function(){" +
-                "var b=_tb();if(b){b.style.transform='translateY(-100%)';b.style.opacity='0';}},4000);};" +
-                "window.fvShowTop=function(){var b=_tb();if(!b)return;" +
-                "b.style.transform='translateY(0)';b.style.opacity='1';fvHideTopSoon();};" +
+                // Auto-hiding top bar. fvShowTop() reveals it and (re)arms a 4s hide; C# pokes it
+                // on every input so it always reappears. Re-applies both props each call so it can
+                // never get stuck hidden. Starts visible.
+                "var _tt;" +
+                "window.fvShowTop=function(){var b=document.getElementById('tbar');if(!b)return;" +
+                "b.style.opacity='1';b.style.transform='translateY(0)';b.style.visibility='visible';" +
+                "if(_tt)clearTimeout(_tt);" +
+                "_tt=setTimeout(function(){var x=document.getElementById('tbar');" +
+                "if(x){x.style.opacity='0';x.style.transform='translateY(-100%)';}},4000);};" +
                 "</script></body></html>";
         }
 
