@@ -6,6 +6,7 @@ using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
+using System.Windows.Controls;
 using FullVid.Common;
 using FullVid.Services.Controller;
 
@@ -16,6 +17,7 @@ namespace FullVid
         private readonly IPlayniteAPI _api;
         private FileLogger _fileLogger;
         private ControllerEventRouter _controllerRouter;
+        private readonly FullVidSettingsViewModel _settingsViewModel;
 
         public override Guid Id { get; } = Guid.Parse("fd1c93dc-92a4-4380-a090-47d68988eb0c");
 
@@ -27,6 +29,7 @@ namespace FullVid
             _api = api;
             _fileLogger = new FileLogger(GetPluginUserDataPath(), _api?.Paths?.ConfigurationPath);
             _controllerRouter = new ControllerEventRouter(_fileLogger);
+            _settingsViewModel = new FullVidSettingsViewModel(this);
 
             // Register this instance so dialogs (DialogHelper) can reach the shared router.
             if (Application.Current?.Properties != null)
@@ -37,6 +40,11 @@ namespace FullVid
 
         // Exposes the shared controller-event router for modal dialogs.
         public ControllerEventRouter GetControllerEventRouter() => _controllerRouter;
+
+        // Playnite treats the ViewModel as the ISettings object and sets it as the view's DataContext.
+        public override ISettings GetSettings(bool firstRunSettings) => _settingsViewModel;
+
+        public override UserControl GetSettingsView(bool firstRunSettings) => new FullVidSettingsView();
 
         public override IEnumerable<GameMenuItem> GetGameMenuItems(GetGameMenuItemsArgs args)
         {

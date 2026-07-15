@@ -1,0 +1,80 @@
+<UserControl x:Class="FullVid.FullVidSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:FullVid"
+             mc:Ignorable="d"
+             d:DesignHeight="520" d:DesignWidth="640">
+    <UserControl.Resources>
+        <ObjectDataProvider x:Key="VideoQualityValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="local:VideoQuality"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="CookieModeValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="local:CookieMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20">
+            <TextBlock Text="Download Tools" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+            <TextBlock Text="FullVid uses yt-dlp to fetch trailers and ffmpeg to process them. Point each to its .exe."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+            <!-- yt-dlp -->
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="yt-dlp Path:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.YtDlpPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                <Button Content="Browse..." Width="80" Command="{Binding BrowseYtDlp}"/>
+                <TextBlock Text="{Binding YtDlpStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <!-- ffmpeg -->
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="ffmpeg Path:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.FfmpegPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                <Button Content="Browse..." Width="80" Command="{Binding BrowseFfmpeg}"/>
+                <TextBlock Text="{Binding FfmpegStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Separator Margin="0,16"/>
+
+            <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Results to show:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.SearchResultCount}" Width="60"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Query template:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.QueryTemplate}" Width="320"/>
+            </StackPanel>
+            <TextBlock Text="Use {name} as the game-name placeholder." FontSize="11" Foreground="Gray" Margin="110,0,0,0"/>
+
+            <Separator Margin="0,16"/>
+
+            <TextBlock Text="Download" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Quality:" VerticalAlignment="Center" Width="110"/>
+                <ComboBox Width="140" SelectedItem="{Binding Settings.DownloadQuality}"
+                          ItemsSource="{Binding Source={StaticResource VideoQualityValues}}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="Cookies source:" VerticalAlignment="Center" Width="110"/>
+                <ComboBox Width="140" SelectedItem="{Binding Settings.CookiesSource}"
+                          ItemsSource="{Binding Source={StaticResource CookieModeValues}}"/>
+            </StackPanel>
+            <CheckBox Content="Pause UniPlaySong while a trailer plays"
+                      IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,10,0,0"/>
+
+            <Separator Margin="0,16"/>
+
+            <CheckBox Content="Enable debug logging (FullVid.log)"
+                      IsChecked="{Binding Settings.EnableDebugLogging}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

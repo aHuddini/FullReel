@@ -1,0 +1,88 @@
+using System.Collections.Generic;
+using System.Windows.Input;
+using FullVid.Common;
+using Playnite.SDK;
+
+namespace FullVid
+{
+    // The settings object Playnite gets from FullVid.GetSettings and sets as the view's
+    // DataContext. Wraps the persisted FullVidSettings model, owns the ISettings lifecycle,
+    // and exposes tool-path validation status + Browse commands for the settings view.
+    public class FullVidSettingsViewModel : ObservableObject, ISettings
+    {
+        private readonly FullVid plugin;
+        private readonly ToolProbe _probe = new ToolProbe();
+        private FullVidSettings settings;
+
+        public FullVidSettingsViewModel(FullVid plugin)
+        {
+            this.plugin = plugin;
+            settings = plugin.LoadPluginSettings<FullVidSettings>() ?? new FullVidSettings();
+        }
+
+        public FullVidSettings Settings
+        {
+            get => settings;
+            set { settings = value; OnPropertyChanged(); }
+        }
+
+        private string _ytDlpStatus = string.Empty;
+        public string YtDlpStatus { get => _ytDlpStatus; set { _ytDlpStatus = value; OnPropertyChanged(); } }
+
+        private string _ffmpegStatus = string.Empty;
+        public string FfmpegStatus { get => _ffmpegStatus; set { _ffmpegStatus = value; OnPropertyChanged(); } }
+
+        public ICommand BrowseYtDlp => new RelayCommand(() =>
+        {
+            var path = plugin.PlayniteApi.Dialogs.SelectFile("yt-dlp|yt-dlp.exe|Executable|*.exe");
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                settings.YtDlpPath = path;
+                UpdateToolStatus();
+            }
+        });
+
+        public ICommand BrowseFfmpeg => new RelayCommand(() =>
+        {
+            var path = plugin.PlayniteApi.Dialogs.SelectFile("ffmpeg|ffmpeg.exe|Executable|*.exe");
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                settings.FfmpegPath = path;
+                UpdateToolStatus();
+            }
+        });
+
+        // Re-probe both tools and refresh the status strings. Called on settings open
+        // (BeginEdit) and after each Browse. Cheap: ToolProbe caches by path+mtime.
+        private void UpdateToolStatus()
+        {
+            YtDlpStatus = _probe.Probe(settings.YtDlpPath, "--version");
+            // ffmpeg accepts --version too (exit 0, same multi-line output) — verified against
+            // ffmpeg 8.0. ToolProbe parses the "ffmpeg version <ver>" first line either way.
+            FfmpegStatus = _probe.Probe(settings.FfmpegPath, "--version");
+        }
+
+        // ISettings lifecycle. Playnite calls BeginEdit when the view opens.
+        public void BeginEdit()
+        {
+            UpdateToolStatus();
+        }
+
+        public void CancelEdit()
+        {
+            settings = plugin.LoadPluginSettings<FullVidSettings>() ?? new FullVidSettings();
+            OnPropertyChanged(nameof(Settings));
+        }
+
+        public void EndEdit()
+        {
+            plugin.SavePluginSettings(settings);
+        }
+
+        public bool VerifySettings(out List<string> errors)
+        {
+            errors = new List<string>();
+            return true;
+        }
+    }
+}
