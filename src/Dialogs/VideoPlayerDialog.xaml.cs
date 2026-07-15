@@ -174,7 +174,8 @@ namespace FullVid.Dialogs
             if (!string.Equals(e.Request?.Uri, PlayerPageUrl, StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var html = BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty, _frosted);
+            var style = _settings?.PlayerBarStyle ?? PlayerBarStyle.FrostedBlur;
+            var html = BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty, style, _frosted);
             var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
             var env = Web.CoreWebView2.Environment;
             e.Response = env.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
@@ -182,35 +183,68 @@ namespace FullVid.Dialogs
 
         // The hosted page: an IFrame Player API player filling the window, no native controls.
         // autoplay=1, controls=0 — all transport is driven from C# via ExecuteScriptAsync.
-        // frostedBar adds the controls-hint legend as an in-page overlay with backdrop-filter:
-        // Chromium blurs the live video behind it natively on the GPU — no WPF snapshots.
-        private static string BuildPlayerHtml(string videoId, string title, bool frostedBar)
+        // Per-style glass skin for the bars. All are in-page CSS (backdrop-filter over the live
+        // video). Returns (topBackground, bottomBackground, blurPx, topBorderCss, bottomBorderCss).
+        private static void GetBarSkin(PlayerBarStyle style, out string topBg, out string botBg,
+            out int blur, out string topBorder, out string botBorder)
+        {
+            switch (style)
+            {
+                case PlayerBarStyle.HeavyFrost:
+                    topBg = "rgba(40,40,44,.55)"; botBg = "rgba(40,40,44,.5)"; blur = 28;
+                    topBorder = "1px solid rgba(255,255,255,.35)"; botBorder = "1px solid rgba(255,255,255,.35)";
+                    break;
+                case PlayerBarStyle.TintedPurple:
+                    topBg = "rgba(52,34,78,.62)"; botBg = "rgba(52,34,78,.5)"; blur = 18;
+                    topBorder = "1px solid rgba(179,157,219,.4)"; botBorder = "1px solid rgba(179,157,219,.4)";
+                    break;
+                case PlayerBarStyle.MinimalGlass:
+                    topBg = "rgba(20,20,20,.32)"; botBg = "rgba(20,20,20,.22)"; blur = 8;
+                    topBorder = "1px solid rgba(255,255,255,.08)"; botBorder = "1px solid rgba(255,255,255,.1)";
+                    break;
+                case PlayerBarStyle.GradientFade:
+                    // No hard edge: gradients fade into the video. Blur is light on top of that.
+                    topBg = "linear-gradient(to bottom,rgba(0,0,0,.75),rgba(0,0,0,0))";
+                    botBg = "linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,0))";
+                    blur = 6; topBorder = "0"; botBorder = "0";
+                    break;
+                default: // FrostedBlur — the official look
+                    topBg = "rgba(10,10,10,.72)"; botBg = "rgba(18,18,18,.35)"; blur = 16;
+                    topBorder = "1px solid rgba(255,255,255,.15)"; botBorder = "1px solid rgba(255,255,255,.25)";
+                    break;
+            }
+        }
+
+        // Builds the hosted player page. In every glass style the controls-hint legend is an
+        // in-page overlay with backdrop-filter — Chromium blurs the live video on the GPU, no WPF.
+        // GradientFade adds extra bottom padding on the top bar so the gradient has room to fade.
+        private static string BuildPlayerHtml(string videoId, string title, PlayerBarStyle style, bool frostedBar)
         {
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
-            // Both bars are pointer-events:none — display-only; all input stays in C#. Both blur
-            // the live video behind them (backdrop-filter, GPU-native) over a dark tint, so the
-            // player reads consistently top-and-bottom as frosted glass.
-            // Top bar auto-hides during playback (slides up) and reappears on any input — see the
-            // fvShowTop() JS and OnControllerButtonPressed/keyboard poke below. So the title
-            // doesn't permanently cover the top of the video.
+            GetBarSkin(style, out var topBg, out var botBg, out var blur, out var topBorder, out var botBorder);
+            var blurCss = "backdrop-filter:blur(" + blur + "px) saturate(1.2);-webkit-backdrop-filter:blur(" + blur + "px) saturate(1.2);";
+            // GradientFade reads better with taller bars so the fade has room.
+            var topPad = style == PlayerBarStyle.GradientFade ? "18px 18px 30px" : "12px 18px";
+            var botPad = style == PlayerBarStyle.GradientFade ? "30px 8px 14px" : "13px 8px";
+
+            // Both bars are pointer-events:none — display-only; all input stays in C#. The top bar
+            // auto-hides during playback and reappears on any input (fvShowTop() JS + C# poke).
             var topBar = !frostedBar ? "" :
                 "<div id=\"tbar\" style=\"position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
-                "pointer-events:none;padding:12px 18px;box-sizing:border-box;" +
+                "pointer-events:none;padding:" + topPad + ";box-sizing:border-box;" +
                 "font:600 16px 'Segoe UI',sans-serif;color:#FFFFFF;" +
                 "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-                "background:rgba(10,10,10,.72);border-bottom:1px solid rgba(255,255,255,.15);" +
-                "backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);" +
+                "background:" + topBg + ";border-bottom:" + topBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;\">" +
                 HtmlEscape(title) +
                 "</div>";
 
             var bottomBar = !frostedBar ? "" :
                 "<div style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
-                "pointer-events:none;padding:13px 8px;text-align:center;" +
+                "pointer-events:none;padding:" + botPad + ";text-align:center;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
-                "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
-                "backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);\">" +
+                "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss + "\">" +
                 "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">◄ ►</b> Seek 10s" +

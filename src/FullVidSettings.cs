@@ -23,11 +23,16 @@ namespace FullVid
         P480        // up to 480p
     }
 
-    // How the player's controls hint bar is rendered.
+    // How the player's controls hint bar is rendered. All except Performance are in-page CSS
+    // glass variants (backdrop-filter over the live video — GPU-native, near-zero cost).
     public enum PlayerBarStyle
     {
-        FrostedBlur,  // translucent bar floating over the video with a live blurred backing
-        Performance   // plain translucent strip below the video — no blur, no overlay (cheapest)
+        FrostedBlur,   // official look: neutral frosted glass, moderate blur
+        HeavyFrost,    // thicker iOS-style glass: strong blur, opaque white-ish frost
+        TintedPurple,  // accent-tinted glass matching the DeepPurple theme
+        MinimalGlass,  // barely-there: light blur, faint tint, mostly video shows through
+        GradientFade,  // no hard edge: dark bottom-up gradient + light blur (YouTube/Netflix-style)
+        Performance    // plain WPF strip below the video — no blur, no overlay (cheapest)
     }
 
     // Persisted plugin settings. Plain ObservableObject; the ISettings lifecycle

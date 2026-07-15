@@ -62,11 +62,17 @@
             <TextBlock Text="Player" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <TextBlock Text="Controls bar:" VerticalAlignment="Center" Width="110"/>
-                <ComboBox Width="160" SelectedItem="{Binding Settings.PlayerBarStyle}"
+                <ComboBox Width="160" SelectedItem="{Binding SelectedBarStyle}"
                           ItemsSource="{Binding Source={StaticResource PlayerBarStyleValues}}"/>
             </StackPanel>
-            <TextBlock Text="FrostedBlur: glass bar over the video with a live blurred backing. Performance: plain strip below the video — lighter on the GPU if you see stutter."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
+            <TextBlock Text="Frosted-glass looks for the player's controls bar. Preview below updates as you pick. Performance = a plain strip below the video (no glass) — pick it if you ever see stutter."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,8"/>
+
+            <!-- Live preview of the selected glass style (real backdrop-filter render). -->
+            <Border Margin="110,4,0,0" Width="420" HorizontalAlignment="Left"
+                    BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+                <Image Source="{Binding BarStylePreviewPath}" Width="420" Height="160" Stretch="Fill"/>
+            </Border>
 
             <Separator Margin="0,16"/>
 

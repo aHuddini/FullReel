@@ -35,6 +35,32 @@ namespace FullVid
         private string _denoStatus = string.Empty;
         public string DenoStatus { get => _denoStatus; set { _denoStatus = value; OnPropertyChanged(); } }
 
+        // Player-bar style bound to the settings dropdown. Wraps Settings.PlayerBarStyle so
+        // changing it also refreshes the preview image below the dropdown.
+        public PlayerBarStyle SelectedBarStyle
+        {
+            get => settings.PlayerBarStyle;
+            set
+            {
+                if (settings.PlayerBarStyle == value) return;
+                settings.PlayerBarStyle = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(BarStylePreviewPath));
+            }
+        }
+
+        // Pack URI of the bundled preview PNG for the selected style. Performance has no glass
+        // preview — falls back to the official FrostedBlur image.
+        public string BarStylePreviewPath
+        {
+            get
+            {
+                var name = settings.PlayerBarStyle == PlayerBarStyle.Performance
+                    ? "FrostedBlur" : settings.PlayerBarStyle.ToString();
+                return "pack://application:,,,/FullVid;component/Images/StylePreviews/" + name + ".png";
+            }
+        }
+
         public ICommand BrowseYtDlp => new RelayCommand(() =>
         {
             var path = plugin.PlayniteApi.Dialogs.SelectFile("yt-dlp|yt-dlp.exe|Executable|*.exe");
