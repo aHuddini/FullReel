@@ -49,11 +49,8 @@ namespace FullVid.Dialogs
         private bool _upsPaused;
         private bool _webReady;
 
-        // Frosted-mode: throttled timer that snapshots the video's bottom strip into the bar's
-        // blurred backing. ~12fps decouples the blur cost from the video framerate (the throttle).
-        private System.Windows.Threading.DispatcherTimer _frostTimer;
-        private System.Windows.Media.Imaging.RenderTargetBitmap _frostRtb;
-        private const double FrostFps = 12;
+        // FrostedBlur bar style: the hint bar lives INSIDE the hosted page as an HTML overlay
+        // with CSS backdrop-filter — Chromium blurs its own video on the GPU. WPF does nothing.
         private bool _frosted;
 
         // Pure button-decision seam. swapAB models Playnite's SwapConfirmCancelButtons:
@@ -155,65 +152,14 @@ namespace FullVid.Dialogs
             Web.CoreWebView2.Navigate(PlayerPageUrl);
         }
 
-        // Choose the hint-bar style from settings. FrostedBlur floats the glass bar over the
-        // video and starts the throttled snapshot timer; Performance shows the plain strip below.
+        // Choose the hint-bar style from settings. FrostedBlur = HTML overlay inside the page
+        // (BuildPlayerHtml includes it); Performance = plain WPF strip below the video.
         private void SetupHintBar()
         {
             _frosted = _settings?.PlayerBarStyle != PlayerBarStyle.Performance;
 
-            if (_frosted)
-            {
-                FrostedBar.Visibility = Visibility.Visible;
-                PerfBar.Visibility = Visibility.Collapsed;
-                PerfBarRow.Height = new GridLength(0);
-
-                _frostTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
-                {
-                    Interval = TimeSpan.FromMilliseconds(1000.0 / FrostFps)
-                };
-                _frostTimer.Tick += UpdateFrostBacking;
-                _frostTimer.Start();
-            }
-            else
-            {
-                FrostedBar.Visibility = Visibility.Collapsed;
-                PerfBar.Visibility = Visibility.Visible;
-                PerfBarRow.Height = GridLength.Auto;
-            }
-        }
-
-        // Throttled frosted backing: snapshot the video's bottom strip into FrostedBacking at
-        // FrostFps (not the video's framerate). Renders the WebView2 visual to a small RTB and
-        // shifts it up so only the bottom band shows behind the bar — the BlurEffect on the Image
-        // hides the low resolution and softens the result into frosted glass.
-        private void UpdateFrostBacking(object sender, EventArgs e)
-        {
-            try
-            {
-                if (Web == null || Web.ActualWidth < 1 || FrostedBar.ActualHeight < 1)
-                    return;
-
-                var w = (int)Web.ActualWidth;
-                var h = (int)Web.ActualHeight;
-                if (w < 1 || h < 1) return;
-
-                if (_frostRtb == null || _frostRtb.PixelWidth != w || _frostRtb.PixelHeight != h)
-                    _frostRtb = new System.Windows.Media.Imaging.RenderTargetBitmap(w, h, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
-
-                _frostRtb.Clear();
-                _frostRtb.Render(Web);
-
-                // Crop to the bottom strip (bar height) so the Image shows just that band.
-                var barH = (int)Math.Min(FrostedBar.ActualHeight, h);
-                var y = h - barH;
-                var crop = new System.Windows.Media.Imaging.CroppedBitmap(_frostRtb, new Int32Rect(0, y, w, barH));
-                FrostedBacking.Source = crop;
-            }
-            catch (Exception ex)
-            {
-                // Snapshot can fail while the video is mid-composite — skip this frame, keep the last.
-                Logger.Debug(ex, "Frost backing snapshot skipped");
-            }
+            PerfBar.Visibility = _frosted ? Visibility.Collapsed : Visibility.Visible;
+            PerfBarRow.Height = _frosted ? new GridLength(0) : GridLength.Auto;
         }
 
         // Virtual origin for our hosted player page. A real https host name is what makes
@@ -228,7 +174,7 @@ namespace FullVid.Dialogs
             if (!string.Equals(e.Request?.Uri, PlayerPageUrl, StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var html = BuildPlayerHtml(_video?.Id ?? string.Empty);
+            var html = BuildPlayerHtml(_video?.Id ?? string.Empty, _frosted);
             var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
             var env = Web.CoreWebView2.Environment;
             e.Response = env.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
@@ -236,13 +182,34 @@ namespace FullVid.Dialogs
 
         // The hosted page: an IFrame Player API player filling the window, no native controls.
         // autoplay=1, controls=0 — all transport is driven from C# via ExecuteScriptAsync.
-        private static string BuildPlayerHtml(string videoId)
+        // frostedBar adds the controls-hint legend as an in-page overlay with backdrop-filter:
+        // Chromium blurs the live video behind it natively on the GPU — no WPF snapshots.
+        private static string BuildPlayerHtml(string videoId, bool frostedBar)
         {
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
+
+            // pointer-events:none — the bar is display-only; all input stays in C#.
+            var bar = !frostedBar ? "" :
+                "<div id=\"bar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:10;" +
+                "pointer-events:none;padding:13px 8px;text-align:center;" +
+                "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
+                "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
+                "backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);\">" +
+                "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#B39DDB\">◄ ►</b> Seek 10s" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#B39DDB\">▲ ▼</b> Volume" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#B39DDB\">Y / D</b> Download" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#EF9A9A\">B / Esc</b> Close" +
+                "</div>";
+
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>" +
-                "</head><body><div id=\"p\"></div>" +
+                "</head><body><div id=\"p\"></div>" + bar +
                 "<script>" +
                 "var player;" +
                 "function onYouTubeIframeAPIReady(){" +
@@ -266,13 +233,6 @@ namespace FullVid.Dialogs
             {
                 w.Closed -= OnWindowClosed;
                 w.PreviewKeyDown -= OnPreviewKeyDown;
-            }
-
-            if (_frostTimer != null)
-            {
-                _frostTimer.Stop();
-                _frostTimer.Tick -= UpdateFrostBacking;
-                _frostTimer = null;
             }
 
             if (_upsPaused)

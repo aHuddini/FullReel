@@ -33,10 +33,10 @@
     </UserControl.Resources>
 
     <!-- Two hint-bar styles, chosen by the PlayerBarStyle setting (code-behind toggles them):
-         • FrostedBlur: bar floats over the video; its backing is a throttled blurred snapshot of
-           the video's bottom strip (real frosted glass). WebView2CompositionControl composes into
-           the WPF tree so overlaying the video works. Requires WebView2 runtime 132+.
-         • Performance: plain translucent strip BELOW the video — no blur, no overlay, cheapest. -->
+         • FrostedBlur: the bar is an HTML overlay INSIDE the WebView2 page (see BuildPlayerHtml)
+           using CSS backdrop-filter — Chromium blurs its own video on the GPU. No WPF bar, no
+           snapshots, zero WPF-side cost.
+         • Performance: plain translucent WPF strip BELOW the video — no blur, no overlay. -->
     <Grid Background="#212121">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>                        <!-- Player -->
@@ -44,19 +44,6 @@
         </Grid.RowDefinitions>
 
         <wv2:WebView2CompositionControl Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
-
-        <!-- FROSTED: overlays the bottom of the video (Grid.Row=0). Backing image is filled by a
-             throttled RenderTargetBitmap snapshot (see code-behind) so the blur cost is decoupled
-             from the video framerate. Hidden in Performance mode. -->
-        <Grid x:Name="FrostedBar" Grid.Row="0" VerticalAlignment="Bottom" Height="48" Visibility="Collapsed">
-            <Image x:Name="FrostedBacking" Stretch="Fill" RenderOptions.BitmapScalingMode="LowQuality">
-                <Image.Effect>
-                    <BlurEffect Radius="30" KernelType="Gaussian" RenderingBias="Performance"/>
-                </Image.Effect>
-            </Image>
-            <Border Background="#59151515" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0"/>
-            <ContentControl VerticalAlignment="Center" Content="{StaticResource HintText}"/>
-        </Grid>
 
         <!-- PERFORMANCE: plain strip in its own row below the video. Hidden in frosted mode. -->
         <Border x:Name="PerfBar" Grid.Row="1"
