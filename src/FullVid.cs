@@ -60,7 +60,10 @@ namespace FullVid
             {
                 new GameMenuItem
                 {
-                    Description = "FullVid: Find Videos",
+                    // MenuSection groups it under a named "FullVid" submenu — the same shape UPS
+                    // uses, which is what Fullscreen surfaces as a navigable game-options entry.
+                    Description = "Find Videos",
+                    MenuSection = "FullVid",
                     Action = _ => FindVideos(game)
                 }
             };
