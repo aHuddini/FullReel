@@ -73,8 +73,7 @@ namespace FullVid.Dialogs
             VideoResult video,
             FullVidSettings settings,
             UniPlaySongBridge bridge,
-            Action<VideoResult> onDownload = null,
-            string backgroundArtPath = null)
+            Action<VideoResult> onDownload = null)
         {
             InitializeComponent();
 
@@ -84,10 +83,6 @@ namespace FullVid.Dialogs
             _bridge = bridge;
             _onDownload = onDownload;
 
-            // Load the game art as the blur source behind the hint bar. Plain WPF image, so a
-            // BlurEffect on it gives a real frosted-glass strip (unlike the WebView2 video).
-            LoadBackgroundArt(backgroundArtPath);
-
             // Read the confirm/cancel swap once, up front. Read-only SDK property; default
             // to un-swapped on any failure so A always confirms in the worst case.
             try { _swapAB = api?.ApplicationSettings?.Fullscreen?.SwapConfirmCancelButtons ?? false; }
@@ -95,25 +90,6 @@ namespace FullVid.Dialogs
 
             Loaded += OnDialogLoaded;
             Unloaded += OnDialogUnloaded;
-        }
-
-        private void LoadBackgroundArt(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
-                return;
-            try
-            {
-                var bmp = new System.Windows.Media.Imaging.BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                bmp.UriSource = new Uri(path, UriKind.Absolute);
-                bmp.EndInit();
-                GlassArt.Source = bmp;
-            }
-            catch (Exception ex)
-            {
-                Logger.Debug(ex, "Failed to load background art: " + path);
-            }
         }
 
         private async void OnDialogLoaded(object sender, RoutedEventArgs e)

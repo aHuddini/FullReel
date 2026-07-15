@@ -150,19 +150,13 @@ namespace FullVid
             var settings = _settingsViewModel.Settings;
             var bridge = new UniPlaySongBridge(new ProcessUriInvoker());
 
-            // Game art shown (blurred) behind the hint bar for a real frosted-glass look —
-            // the video is WebView2 airspace we can't blur, but this image is plain WPF.
-            var imageId = game?.BackgroundImage ?? game?.CoverImage;
-            var artPath = string.IsNullOrWhiteSpace(imageId) ? null : _api?.Database?.GetFullFilePath(imageId);
-
             Window window = null;
             var player = new VideoPlayerDialog(_api, video, settings, bridge,
                 onDownload: v =>
                 {
                     window?.Close();
                     DownloadVideo(game, v);
-                },
-                backgroundArtPath: artPath);
+                });
 
             window = DialogHelper.CreateFullscreenDialog(_api, player, "FullVid: " + (video?.Title ?? "Player"), 1280, 760, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "WatchVideo");

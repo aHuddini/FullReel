@@ -18,8 +18,9 @@
     </UserControl.Resources>
 
     <!-- WebView2 is a separate airspace HWND that paints on top of all WPF content, so the hint
-         bar CANNOT overlay the video (it'd be hidden behind it). It gets its own row below the
-         video. Glass styling (translucent panel + top highlight + shadow) is kept. -->
+         bar gets its own row below the video. The window itself is made acrylic (code-behind,
+         DWM blur-behind) so this translucent strip frosts the theme view behind the window —
+         real backdrop blur without touching the video's airspace. -->
     <Grid Background="#212121">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>     <!-- Player -->
@@ -28,26 +29,11 @@
 
         <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
 
-        <!-- Hint bar row: a blurred slice of the game art sits behind a translucent panel, so
-             the strip reads as real frosted glass. ClipToBounds keeps the blurred art inside
-             the row; the art is stretched wide and bottom-aligned so a band of it shows. -->
-        <Grid Grid.Row="1" ClipToBounds="True">
-            <Image x:Name="GlassArt"
-                   Stretch="UniformToFill"
-                   VerticalAlignment="Bottom"
-                   Opacity="0.7">
-                <Image.Effect>
-                    <BlurEffect Radius="40" KernelType="Gaussian"/>
-                </Image.Effect>
-            </Image>
-
-            <!-- Dark scrim so text stays legible over any art, plus the glass tint. -->
-            <Border Background="#99101010"/>
-
-            <Border Background="#4D141414"
-                    BorderBrush="#33FFFFFF"
-                    BorderThickness="0,1,0,0"
-                    Padding="0,11,0,11">
+        <Border Grid.Row="1"
+                Background="#5C1A1A1A"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="0,1,0,0"
+                Padding="0,11,0,11">
             <TextBlock FontSize="14"
                        TextAlignment="Center"
                        TextWrapping="Wrap">
@@ -61,7 +47,6 @@
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
-            </Border>
-        </Grid>
+        </Border>
     </Grid>
 </UserControl>
