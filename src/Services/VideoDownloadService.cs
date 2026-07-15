@@ -222,6 +222,11 @@ namespace FullVid.Services
                 RedirectStandardError = true
             };
 
+            // yt-dlp needs deno on PATH to solve YouTube's signature/PO-token challenges;
+            // ffmpeg doesn't, so only inject for the yt-dlp process.
+            if (isYtDlp)
+                ToolEnv.PrependToolDirToPath(psi, _settings?.DenoPath);
+
             using (var process = Process.Start(psi))
             {
                 if (process == null)

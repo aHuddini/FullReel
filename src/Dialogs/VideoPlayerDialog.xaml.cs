@@ -132,11 +132,52 @@ namespace FullVid.Dialogs
 
             Web.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
 
-            // controls=0 hides YouTube's own UI; enablejsapi=1 exposes the IFrame Player API
-            // so all transport is driven from C#.
-            var url = "https://www.youtube.com/embed/" + Uri.EscapeDataString(_video?.Id ?? string.Empty) +
-                      "?autoplay=1&controls=0&modestbranding=1&enablejsapi=1";
-            Web.CoreWebView2.Navigate(url);
+            // Serve our own HTML page from a virtual https host. Navigating straight to
+            // youtube.com/embed/... loads it as a top-level page with an opaque origin, which
+            // YouTube's embed rejects ("error 153 / player configuration"). Instead we host a
+            // page under a real https origin and let the IFrame Player API create the iframe —
+            // the API then passes a valid origin/referrer and the embed plays.
+            Web.CoreWebView2.AddWebResourceRequestedFilter(PlayerPageUrl, CoreWebView2WebResourceContext.All);
+            Web.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
+            Web.CoreWebView2.Navigate(PlayerPageUrl);
+        }
+
+        // Virtual origin for our hosted player page. A real https host name is what makes
+        // YouTube accept the embed; the path is arbitrary.
+        private const string PlayerHost = "fullvid.player";
+        private const string PlayerPageUrl = "https://" + PlayerHost + "/player.html";
+
+        // Answer the navigation to PlayerPageUrl with an in-memory HTML page that loads the
+        // YouTube IFrame Player API and builds the player for this video id. No temp files.
+        private void OnWebResourceRequested(object sender, CoreWebView2WebResourceRequestedEventArgs e)
+        {
+            if (!string.Equals(e.Request?.Uri, PlayerPageUrl, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var html = BuildPlayerHtml(_video?.Id ?? string.Empty);
+            var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
+            var env = Web.CoreWebView2.Environment;
+            e.Response = env.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
+        }
+
+        // The hosted page: an IFrame Player API player filling the window, no native controls.
+        // autoplay=1, controls=0 — all transport is driven from C# via ExecuteScriptAsync.
+        private static string BuildPlayerHtml(string videoId)
+        {
+            var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
+            return
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
+                "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>" +
+                "</head><body><div id=\"p\"></div>" +
+                "<script>" +
+                "var player;" +
+                "function onYouTubeIframeAPIReady(){" +
+                "  player=new YT.Player('p',{videoId:'" + safeId + "'," +
+                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1}});" +
+                "}" +
+                "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
+                "document.head.appendChild(s);" +
+                "</script></body></html>";
         }
 
         private void OnDialogUnloaded(object sender, RoutedEventArgs e)
@@ -164,7 +205,10 @@ namespace FullVid.Dialogs
             try
             {
                 if (Web?.CoreWebView2 != null)
+                {
                     Web.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
+                    Web.CoreWebView2.WebResourceRequested -= OnWebResourceRequested;
+                }
                 Web?.Dispose();
             }
             catch (Exception ex)
@@ -174,24 +218,11 @@ namespace FullVid.Dialogs
         }
 
         // Bootstrap the YT IFrame Player API so `player.playVideo()` etc. work. The embed
-        // page already loaded www-widgetapi; we bind the existing iframe to a YT.Player once
-        // the API is ready. Fire-and-forget; transport calls no-op until `player` exists.
+        // The hosted page (BuildPlayerHtml) builds `window.player` itself via
+        // onYouTubeIframeAPIReady, so navigation-completed just marks transport ready.
         private void OnNavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             _webReady = e.IsSuccess;
-            if (!e.IsSuccess) return;
-
-            const string bootstrap =
-                "(function(){" +
-                "  window.__fvBind=function(){" +
-                "    if(window.YT&&YT.Player){window.player=new YT.Player(document.getElementsByTagName('iframe')[0]||document.body);}" +
-                "  };" +
-                "  if(window.YT&&window.YT.Player){window.__fvBind();}" +
-                "  else{window.onYouTubeIframeAPIReady=window.__fvBind;" +
-                "    if(!document.getElementById('__fvapi')){var s=document.createElement('script');s.id='__fvapi';s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);}}" +
-                "})();";
-
-            _ = Web.CoreWebView2.ExecuteScriptAsync(bootstrap);
         }
 
         private ControllerEventRouter GetRouter()

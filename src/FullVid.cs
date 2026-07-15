@@ -124,7 +124,7 @@ namespace FullVid
             {
                 try
                 {
-                    var search = new YouTubeSearchService(ytDlpPath);
+                    var search = new YouTubeSearchService(ytDlpPath, settings.DenoPath);
                     var results = await search.SearchAsync(query, count, cts.Token).ConfigureAwait(false);
                     if (!cts.IsCancellationRequested)
                         dialog.SetResults(results);

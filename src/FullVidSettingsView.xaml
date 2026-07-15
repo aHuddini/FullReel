@@ -42,6 +42,16 @@
                 <TextBlock Text="{Binding FfmpegStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
             </StackPanel>
 
+            <!-- deno (yt-dlp JS runtime) -->
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <TextBlock Text="deno Path:" VerticalAlignment="Center" Width="110"/>
+                <TextBox Text="{Binding Settings.DenoPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                <Button Content="Browse..." Width="80" Command="{Binding BrowseDeno}"/>
+                <TextBlock Text="{Binding DenoStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+            </StackPanel>
+            <TextBlock Text="deno is yt-dlp's JS runtime — YouTube now needs it to decode video streams. Without it, search and downloads may return nothing."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
+
             <Separator Margin="0,16"/>
 
             <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>

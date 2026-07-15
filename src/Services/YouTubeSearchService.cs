@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using FullVid.Common;
 using FullVid.Models;
 using Newtonsoft.Json.Linq;
 
@@ -16,10 +17,12 @@ namespace FullVid.Services
     public class YouTubeSearchService
     {
         private readonly string _ytDlpPath;
+        private readonly string _denoPath;
 
-        public YouTubeSearchService(string ytDlpPath)
+        public YouTubeSearchService(string ytDlpPath, string denoPath = null)
         {
             _ytDlpPath = ytDlpPath;
+            _denoPath = denoPath;
         }
 
         // Parse yt-dlp --dump-json output: one JSON object per line. Blank/whitespace lines
@@ -90,6 +93,9 @@ namespace FullVid.Services
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
+
+            // Let yt-dlp find deno (its JS runtime for YouTube signature challenges) on PATH.
+            ToolEnv.PrependToolDirToPath(psi, _denoPath);
 
             using (var process = Process.Start(psi))
             {

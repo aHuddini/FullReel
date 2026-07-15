@@ -32,6 +32,9 @@ namespace FullVid
         private string _ffmpegStatus = string.Empty;
         public string FfmpegStatus { get => _ffmpegStatus; set { _ffmpegStatus = value; OnPropertyChanged(); } }
 
+        private string _denoStatus = string.Empty;
+        public string DenoStatus { get => _denoStatus; set { _denoStatus = value; OnPropertyChanged(); } }
+
         public ICommand BrowseYtDlp => new RelayCommand(() =>
         {
             var path = plugin.PlayniteApi.Dialogs.SelectFile("yt-dlp|yt-dlp.exe|Executable|*.exe");
@@ -52,6 +55,16 @@ namespace FullVid
             }
         });
 
+        public ICommand BrowseDeno => new RelayCommand(() =>
+        {
+            var path = plugin.PlayniteApi.Dialogs.SelectFile("deno|deno.exe|Executable|*.exe");
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                settings.DenoPath = path;
+                UpdateToolStatus();
+            }
+        });
+
         public ICommand BrowseCookiesFile => new RelayCommand(() =>
         {
             var path = plugin.PlayniteApi.Dialogs.SelectFile("Cookies file|*.txt|All files|*.*");
@@ -67,6 +80,8 @@ namespace FullVid
             // ffmpeg accepts --version too (exit 0, same multi-line output) — verified against
             // ffmpeg 8.0. ToolProbe parses the "ffmpeg version <ver>" first line either way.
             FfmpegStatus = _probe.Probe(settings.FfmpegPath, "--version");
+            // deno prints "deno 1.x.x" on the first --version line; ToolProbe takes the first line.
+            DenoStatus = _probe.Probe(settings.DenoPath, "--version");
         }
 
         // ISettings lifecycle. Playnite calls BeginEdit when the view opens.

@@ -34,6 +34,11 @@ namespace FullVid
         private string ffmpegPath = string.Empty;
         public string FfmpegPath { get => ffmpegPath; set { ffmpegPath = value ?? string.Empty; OnPropertyChanged(); } }
 
+        // deno.exe — yt-dlp's external JS runtime for YouTube nsig/PO-token challenges. When set,
+        // its folder is prepended to the yt-dlp process PATH so yt-dlp discovers it.
+        private string denoPath = string.Empty;
+        public string DenoPath { get => denoPath; set { denoPath = value ?? string.Empty; OnPropertyChanged(); } }
+
         private int searchResultCount = 10;
         public int SearchResultCount { get => searchResultCount; set { searchResultCount = value; OnPropertyChanged(); } }
 
