@@ -114,9 +114,7 @@ namespace FullVid
                 onWatch: v =>
                 {
                     window?.Close();
-                    DialogHelper.ShowControllerConfirmation(_api,
-                        "Watch \"" + v.Title + "\"?\n\nPlayback arrives in the next update.",
-                        "FullVid");
+                    WatchVideo(v);
                 },
                 onDownload: v =>
                 {
@@ -129,6 +127,20 @@ namespace FullVid
 
             window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid: Find Videos", 760, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
+            window.ShowDialog();
+        }
+
+        // Opens the fullscreen WebView2 player for the chosen result. The bridge (default
+        // ProcessUriInvoker) pauses/resumes UniPlaySong around playback; settings decide
+        // whether that happens at all.
+        private void WatchVideo(VideoResult video)
+        {
+            var settings = _settingsViewModel.Settings;
+            var bridge = new UniPlaySongBridge(new ProcessUriInvoker());
+            var player = new VideoPlayerDialog(_api, video, settings, bridge);
+
+            var window = DialogHelper.CreateFullscreenDialog(_api, player, "FullVid: " + (video?.Title ?? "Player"), 1280, 760, IsFullscreen);
+            DialogHelper.AddFocusReturnHandler(window, _api, "WatchVideo");
             window.ShowDialog();
         }
 

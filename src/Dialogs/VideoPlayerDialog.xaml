@@ -1,0 +1,35 @@
+<UserControl x:Class="FullVid.Dialogs.VideoPlayerDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             mc:Ignorable="d"
+             d:DesignHeight="720" d:DesignWidth="1280"
+             Focusable="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="#212121">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>     <!-- Player -->
+            <RowDefinition Height="Auto"/>  <!-- Controller hint -->
+        </Grid.RowDefinitions>
+
+        <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
+
+        <TextBlock Grid.Row="1"
+                   FontSize="13"
+                   Foreground="#BBBBBB"
+                   TextAlignment="Center"
+                   Margin="0,8,0,8"
+                   Text="A: Play/Pause  •  D-Pad L/R: Seek 10s  •  D-Pad U/D: Volume  •  Y: Download  •  B: Close"/>
+    </Grid>
+</UserControl>
