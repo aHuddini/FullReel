@@ -103,9 +103,10 @@ namespace FullVid
         private void UpdateToolStatus()
         {
             YtDlpStatus = _probe.Probe(settings.YtDlpPath, "--version");
-            // ffmpeg accepts --version too (exit 0, same multi-line output) — verified against
-            // ffmpeg 8.0. ToolProbe parses the "ffmpeg version <ver>" first line either way.
-            FfmpegStatus = _probe.Probe(settings.FfmpegPath, "--version");
+            // ffmpeg needs -version (single dash): --version exits non-zero and it prints the
+            // banner to stderr. Verified against ffmpeg 8.0.1 (gyan build): -version → exit 0,
+            // stdout. deno also uses --version.
+            FfmpegStatus = _probe.Probe(settings.FfmpegPath, "-version");
             // deno prints "deno 1.x.x" on the first --version line; ToolProbe takes the first line.
             DenoStatus = _probe.Probe(settings.DenoPath, "--version");
         }

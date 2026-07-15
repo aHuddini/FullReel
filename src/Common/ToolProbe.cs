@@ -72,16 +72,29 @@ namespace FullVid.Common
                 using (var proc = Process.Start(psi))
                 {
                     if (proc == null) return null;
-                    var stdout = proc.StandardOutput.ReadToEnd();
+                    // Drain BOTH streams on background tasks — a full stderr pipe would otherwise
+                    // deadlock WaitForExit, and some tools print their version to stderr.
+                    var outTask = proc.StandardOutput.ReadToEndAsync();
+                    var errTask = proc.StandardError.ReadToEndAsync();
                     if (!proc.WaitForExit(3000)) { try { proc.Kill(); } catch { } return null; }
                     if (proc.ExitCode != 0) return null;
-                    return ParseVersion(stdout) ?? string.Empty;
+
+                    var stdout = SafeResult(outTask);
+                    // Prefer stdout; fall back to stderr (harmless if empty).
+                    return ParseVersion(stdout) ?? ParseVersion(SafeResult(errTask)) ?? string.Empty;
                 }
             }
             catch
             {
                 return null;
             }
+        }
+
+        // Awaits a stream-read task with a short bound; returns "" on any fault/timeout.
+        private static string SafeResult(System.Threading.Tasks.Task<string> t)
+        {
+            try { return t.Wait(1000) ? (t.Result ?? string.Empty) : string.Empty; }
+            catch { return string.Empty; }
         }
 
         // yt-dlp prints just the version ("2025.11.12"). ffmpeg prints a multi-line block whose
