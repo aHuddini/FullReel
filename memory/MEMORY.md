@@ -43,3 +43,9 @@
 - [Ponytail scope + validation](feedback_ponytail_scope.md).
 - [Verify CLI flags against the actual binary](feedback_verify_cli_flags.md) — run `--help` against the installed yt-dlp/ffmpeg, never trust memory.
 - [Never push to an archive remote](feedback_never_push_archive.md).
+
+## WebView2CompositionControl Internals (verified by decompiling Microsoft.Web.WebView2.Wpf.dll)
+- Renders via Windows.Graphics.Capture (Direct3D11CaptureFramePool) → D3DImage → internal WPF Image. The video IS a WPF ImageSource — overlays compose normally, no airspace (unlike the plain HwndHost WebView2).
+- **NEVER RenderTargetBitmap.Render() it per-frame**: D3DImage falls back to CopyBackBuffer = full-frame GPU→CPU readback + WPF software re-raster on the UI dispatcher. ~8.3MB/frame at 1080p; stutters at any fps.
+- **Glass/blur over video = CSS backdrop-filter INSIDE the hosted page** (BuildPlayerHtml). Chromium blurs its own video GPU-side at full framerate; works over the cross-origin YT iframe (Viz flattens iframe quads before the backdrop filter). pointer-events:none keeps input in C#. Degrades to plain rgba tint if unsupported.
+- Requires WebView2 runtime 132+ (composition control stable).
