@@ -25,7 +25,7 @@
         <PackageReference Include="MaterialDesignThemes" Version="4.7.0" />
         <PackageReference Include="MaterialDesignColors" Version="2.1.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
+        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3124.44" />
     </ItemGroup>
 
     <ItemGroup>

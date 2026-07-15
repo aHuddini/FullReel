@@ -17,23 +17,21 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- WebView2 is a separate airspace HWND that paints on top of all WPF content, so the hint
-         bar gets its own row below the video. The window itself is made acrylic (code-behind,
-         DWM blur-behind) so this translucent strip frosts the theme view behind the window —
-         real backdrop blur without touching the video's airspace. -->
+    <!-- WebView2CompositionControl composes into the WPF visual tree (unlike the plain
+         WebView2 HwndHost), so WPF content CAN render on top of the video with no airspace
+         issue. The hint bar floats over the bottom of the video as a real translucent glass
+         strip. Requires WebView2 runtime 132+. -->
     <Grid Background="#212121">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>     <!-- Player -->
-            <RowDefinition Height="Auto"/>  <!-- Controls hint -->
-        </Grid.RowDefinitions>
+        <wv2:WebView2CompositionControl x:Name="Web" DefaultBackgroundColor="Black"/>
 
-        <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
-
-        <Border Grid.Row="1"
-                Background="#5C1A1A1A"
-                BorderBrush="#33FFFFFF"
+        <Border VerticalAlignment="Bottom"
+                Background="#661A1A1A"
+                BorderBrush="#40FFFFFF"
                 BorderThickness="0,1,0,0"
                 Padding="0,11,0,11">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="0" Opacity="0.6"/>
+            </Border.Effect>
             <TextBlock FontSize="14"
                        TextAlignment="Center"
                        TextWrapping="Wrap">
