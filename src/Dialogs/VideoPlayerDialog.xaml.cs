@@ -195,18 +195,18 @@ namespace FullVid.Dialogs
             // fvShowTop() JS and OnControllerButtonPressed/keyboard poke below. So the title
             // doesn't permanently cover the top of the video.
             var topBar = !frostedBar ? "" :
-                "<div id=\"tbar\" style=\"position:fixed;left:0;right:0;top:0;z-index:10;" +
+                "<div id=\"tbar\" style=\"position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
                 "pointer-events:none;padding:12px 18px;box-sizing:border-box;" +
                 "font:600 16px 'Segoe UI',sans-serif;color:#FFFFFF;" +
                 "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-                "background:rgba(10,10,10,.6);border-bottom:1px solid rgba(255,255,255,.15);" +
+                "background:rgba(10,10,10,.72);border-bottom:1px solid rgba(255,255,255,.15);" +
                 "backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);" +
-                "transition:transform .3s ease,opacity .3s ease;\">" +
+                "transition:transform .35s ease,opacity .35s ease;\">" +
                 HtmlEscape(title) +
                 "</div>";
 
             var bottomBar = !frostedBar ? "" :
-                "<div style=\"position:fixed;left:0;right:0;bottom:0;z-index:10;" +
+                "<div style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
                 "pointer-events:none;padding:13px 8px;text-align:center;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
                 "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
@@ -230,18 +230,20 @@ namespace FullVid.Dialogs
                 "var player;" +
                 "function onYouTubeIframeAPIReady(){" +
                 "  player=new YT.Player('p',{videoId:'" + safeId + "'," +
-                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1}});" +
+                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1}," +
+                // Hide the top bar only once the video actually starts PLAYING (state 1), not on a
+                // blind load timer — so it's clearly visible while the video buffers.
+                "    events:{onStateChange:function(e){if(e.data===1)fvHideTopSoon();}}});" +
                 "}" +
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
-                // Auto-hiding top bar: show it, then slide it up after 3s. C# calls fvShowTop()
-                // on any input so it reappears whenever the user does something.
-                "var _tt;" +
-                "window.fvShowTop=function(){var b=document.getElementById('tbar');if(!b)return;" +
-                "b.style.transform='translateY(0)';b.style.opacity='1';" +
-                "clearTimeout(_tt);_tt=setTimeout(function(){" +
-                "b.style.transform='translateY(-100%)';b.style.opacity='0';},3000);};" +
-                "fvShowTop();" +
+                // Auto-hiding top bar. fvShowTop() reveals it (C# pokes this on any input);
+                // fvHideTopSoon() slides it up after 4s. Starts visible.
+                "var _tt;var _tb=function(){return document.getElementById('tbar');};" +
+                "window.fvHideTopSoon=function(){clearTimeout(_tt);_tt=setTimeout(function(){" +
+                "var b=_tb();if(b){b.style.transform='translateY(-100%)';b.style.opacity='0';}},4000);};" +
+                "window.fvShowTop=function(){var b=_tb();if(!b)return;" +
+                "b.style.transform='translateY(0)';b.style.opacity='1';fvHideTopSoon();};" +
                 "</script></body></html>";
         }
 
