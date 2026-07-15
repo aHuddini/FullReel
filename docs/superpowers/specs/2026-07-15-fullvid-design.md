@@ -66,6 +66,25 @@ Headline: view videos in fullscreen with a controller, easy to get in AND out. E
 - **Optional:** drop `VideoMicrotrailer.mp4` too and EML uses it; otherwise EML derives it from the trailer. FullVid writes only `VideoTrailer.mp4` for v1.
 - EML repo: `github.com/darklinkpower/PlayniteExtensionsCollection` (MIT), source under `source/Generic/ExtraMetadataLoader/`.
 
+## UniPlaySong Integration — pause UPS music while a video plays
+
+FullVid's video has audio; UPS music playing underneath would clash. **No UPS changes needed** — UPS already exposes a stable URI contract with `pause`/`play` (verified: `ExternalControlService`, `playnite://uniplaysong/{command}`).
+
+- **On video START** (player dialog opens / playback begins): fire `playnite://uniplaysong/pause`.
+  - UPS `pause` → `PauseSource.Manual`, which is in UPS's preserved-pause list — so it **survives game switches / focus events** and stays paused until an explicit resume. Exactly the persistent behavior we want.
+- **On video STOP / player close** (B, window close, playback ended): fire `playnite://uniplaysong/play`.
+  - UPS `play` → `NotifyManualStart()` + `Resume()`.
+
+**How FullVid fires it:** `PlayniteApi.WebViews` isn't right; use the URI via `System.Diagnostics.Process.Start("playnite://uniplaysong/pause")` OR the SDK if it exposes URI invocation. (Verify the actual invocation path against the SDK — a `playnite://` URI is handled by the running Playnite instance's `UriHandler`.)
+
+**Safety (must-have — never leave UPS stuck paused):**
+- Always send `play` on EVERY player-close path (B, window `Closed` event, playback-ended, error). Wire it to the dialog's `Closed`/`Closing` (guaranteed to fire), not just the B handler.
+- If FullVid can't confirm UPS is present, sending the URI is a harmless no-op (nothing registered) — safe to always try.
+- Do NOT pause UPS for a DOWNLOAD (no audio plays); only for WATCH.
+- Make the pause/resume **opt-in via a setting** ("Pause UniPlaySong music while watching", default ON) so users without UPS or who don't want it can disable.
+
+**Wrinkle to verify:** confirm `pause`→`Manual` genuinely holds across a Fullscreen game re-select while the FullVid window is modal-topmost. (UPS Manual is preserved, so expected to hold — validate live.)
+
 ## Controller Mapping (the UX the user asked for — easy in, easy out)
 
 - Results dialog: dpad = navigate list, **A = watch**, **Y = download to game**, **B = close**.
