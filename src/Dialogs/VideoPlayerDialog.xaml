@@ -17,22 +17,35 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- WebView2CompositionControl composes into the WPF visual tree (unlike the plain
-         WebView2 HwndHost), so WPF content CAN render on top of the video with no airspace
-         issue. The hint bar floats over the bottom of the video as a real translucent glass
-         strip. Requires WebView2 runtime 132+. -->
+    <!-- WebView2CompositionControl composes into the WPF visual tree, so we can render over the
+         video. The hint bar is real frosted glass: a live VisualBrush of the video's bottom strip
+         is blurred behind the text, so you see the (blurred) video through the bar instead of an
+         opaque block. The brush samples only the bottom band of the video (Viewbox), so it's cheap
+         — one small blurred region, not the whole frame. Requires WebView2 runtime 132+. -->
     <Grid Background="#212121">
         <wv2:WebView2CompositionControl x:Name="Web" DefaultBackgroundColor="Black"/>
 
-        <Border VerticalAlignment="Bottom"
-                Background="#661A1A1A"
-                BorderBrush="#40FFFFFF"
-                BorderThickness="0,1,0,0"
-                Padding="0,11,0,11">
-            <Border.Effect>
-                <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="0" Opacity="0.6"/>
-            </Border.Effect>
-            <TextBlock FontSize="14"
+        <Grid x:Name="HintBar" VerticalAlignment="Bottom" Height="48">
+            <!-- Frosted backing: blurred live slice of the video behind the bar. Viewbox maps to
+                 the bottom ~7% of the source so the brush samples just this strip's worth of video.
+                 LowQuality scaling + the blur mean the sampled region can be coarse and cheap. -->
+            <Rectangle RenderOptions.BitmapScalingMode="LowQuality">
+                <Rectangle.Fill>
+                    <VisualBrush Visual="{Binding ElementName=Web}"
+                                 Stretch="Fill"
+                                 ViewboxUnits="RelativeToBoundingBox"
+                                 Viewbox="0,0.93,1,0.07"/>
+                </Rectangle.Fill>
+                <Rectangle.Effect>
+                    <BlurEffect Radius="30" KernelType="Gaussian" RenderingBias="Performance"/>
+                </Rectangle.Effect>
+            </Rectangle>
+
+            <!-- Dark glass tint + top highlight so text stays legible over any video. -->
+            <Border Background="#59151515" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0"/>
+
+            <TextBlock VerticalAlignment="Center"
+                       FontSize="14"
                        TextAlignment="Center"
                        TextWrapping="Wrap">
                 <Run Text="A / Space" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Play/Pause" Foreground="#F5F5F5"/>
@@ -45,6 +58,6 @@
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
-        </Border>
+        </Grid>
     </Grid>
 </UserControl>
