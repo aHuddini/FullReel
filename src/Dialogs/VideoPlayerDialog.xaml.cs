@@ -188,15 +188,16 @@ namespace FullVid.Dialogs
         {
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
-            // Both bars are pointer-events:none — display-only; all input stays in C#. Only the
-            // bottom bar blurs (backdrop-filter); the top title bar is a matching plain-translucent
-            // strip so the player reads consistently top-and-bottom.
+            // Both bars are pointer-events:none — display-only; all input stays in C#. Both blur
+            // the live video behind them (backdrop-filter, GPU-native) over a dark tint, so the
+            // player reads consistently top-and-bottom as frosted glass.
             var topBar = !frostedBar ? "" :
                 "<div style=\"position:fixed;left:0;right:0;top:0;z-index:10;" +
-                "pointer-events:none;padding:11px 16px;box-sizing:border-box;" +
-                "font:600 16px 'Segoe UI',sans-serif;color:#F5F5F5;" +
+                "pointer-events:none;padding:12px 18px;box-sizing:border-box;" +
+                "font:600 16px 'Segoe UI',sans-serif;color:#FFFFFF;" +
                 "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-                "background:rgba(18,18,18,.45);border-bottom:1px solid rgba(255,255,255,.15);\">" +
+                "background:rgba(10,10,10,.6);border-bottom:1px solid rgba(255,255,255,.15);" +
+                "backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);\">" +
                 HtmlEscape(title) +
                 "</div>";
 
@@ -204,7 +205,7 @@ namespace FullVid.Dialogs
                 "<div style=\"position:fixed;left:0;right:0;bottom:0;z-index:10;" +
                 "pointer-events:none;padding:13px 8px;text-align:center;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
-                "background:rgba(18,18,18,.35);border-top:1px solid rgba(255,255,255,.25);" +
+                "background:rgba(10,10,10,.6);border-top:1px solid rgba(255,255,255,.2);" +
                 "backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);\">" +
                 "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +

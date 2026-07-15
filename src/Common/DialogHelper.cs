@@ -84,6 +84,44 @@ namespace FullVid.Common
             });
         }
 
+        // Creates a BORDERLESS window (no title bar at all) via a plain WPF Window — NOT
+        // Playnite's CreateWindow, which always draws its own chrome. Used by the player, which
+        // paints its own in-page top/bottom bars, so any window chrome would be a duplicate.
+        // Opaque (no AllowsTransparency) so WebView2 hardware compositing keeps working.
+        public static Window CreateBorderlessDialog(
+            IPlayniteAPI playniteApi,
+            object content,
+            double width,
+            double height,
+            bool isFullscreenMode)
+        {
+            var window = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                Width = width,
+                Height = height,
+                Content = content,
+                Background = new SolidColorBrush(DefaultDarkBackground),
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Topmost = isFullscreenMode,
+                ShowInTaskbar = !isFullscreenMode
+            };
+
+            try
+            {
+                var owner = playniteApi?.Dialogs?.GetCurrentAppWindow();
+                if (owner != null)
+                    window.Owner = owner;
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Error setting borderless window owner");
+            }
+
+            return window;
+        }
+
         // Creates a dialog with full customization options.
         public static Window CreateDialog(
             IPlayniteAPI playniteApi,
