@@ -85,14 +85,6 @@ namespace FullVid.Dialogs
             try { _swapAB = api?.ApplicationSettings?.Fullscreen?.SwapConfirmCancelButtons ?? false; }
             catch { _swapAB = false; }
 
-            // Pause UniPlaySong up front so its music doesn't fight the video. Guard the flag
-            // so Resume() on close only fires if we actually paused.
-            if (_settings?.PauseUniPlaySong == true)
-            {
-                _bridge?.Pause();
-                _upsPaused = true;
-            }
-
             Loaded += OnDialogLoaded;
             Unloaded += OnDialogUnloaded;
         }
@@ -106,6 +98,14 @@ namespace FullVid.Dialogs
             var window = Window.GetWindow(this);
             if (window != null)
                 window.Closed += OnWindowClosed;
+
+            // Pause UniPlaySong here (not in the ctor) so pause and the resume-wire above are
+            // atomic — a control that's constructed but never Loaded can't leave UPS stuck paused.
+            if (_settings?.PauseUniPlaySong == true)
+            {
+                _bridge?.Pause();
+                _upsPaused = true;
+            }
 
             try
             {
