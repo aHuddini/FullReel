@@ -1,12 +1,12 @@
-# FullVid
+# FullReel
 
-A Playnite extension for finding, watching, and downloading YouTube gameplay
-videos and trailers for your games — fullscreen, and fully driven by controller
-or keyboard.
+A Playnite extension for finding, watching, and downloading YouTube videos for
+your games — trailers, gameplay, walkthroughs, reviews, and guides — browsed by
+category tab, fullscreen, and fully driven by controller or keyboard.
 
 ## What it does
 
-- **Find** — right-click a game, pick **FullVid**, and search YouTube for gameplay/trailers via [yt-dlp](https://github.com/yt-dlp/yt-dlp). The results window opens instantly showing "Searching…" and results stream in as they arrive — no blocking progress dialog. Each result shows a thumbnail, title, duration, channel, and view count.
+- **Find** — right-click a game, pick **FullReel**, and search YouTube via [yt-dlp](https://github.com/yt-dlp/yt-dlp). Browse results by category tab — trailers, gameplay, walkthroughs, reviews, and guides. The results window opens instantly showing "Searching…" and results stream in as they arrive — no blocking progress dialog. Each result shows a thumbnail, title, duration, channel, and view count.
 - **Watch** — play a result in a fullscreen borderless [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) player that streams directly from YouTube. Autoplays on open, requests hd1080 so 60fps streams play, and uses the smooth direct-render path.
 - **Download** — save a video into the game's ExtraMetadata folder as `VideoTrailer.mp4` (H.264 / AAC), so [ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection) (EML) can play it as the game's trailer.
 
@@ -18,7 +18,7 @@ or keyboard.
 
 ## How to use
 
-1. Right-click a game → **FullVid**. The results window opens and fills in as videos are found.
+1. Right-click a game → **FullReel**. The results window opens and fills in as videos are found, sorted into category tabs (trailers, gameplay, walkthroughs, reviews, guides).
 2. Navigate the results with the D-pad or arrow keys.
 3. On a result:
    - **A / Enter** — watch it fullscreen.
@@ -33,7 +33,7 @@ In the player:
 - **Y / D** — download
 - **B / Esc** — close
 
-Both a controller and the keyboard fully drive the player and the results list, and FullVid respects Playnite's *Swap Confirm/Cancel Buttons* setting. The player's title bar and controls bar are real frosted glass (backdrop-blur over the live video); the title bar auto-hides during playback and reappears on input. Choose from **6 controls-bar styles** in settings (Player → Controls bar) with a live preview: **FrostedBlur** (default), **HeavyFrost**, **TintedPurple**, **MinimalGlass**, **GradientFade**, and **Performance** (a plain strip, lightest on the GPU).
+Both a controller and the keyboard fully drive the player and the results list, and FullReel respects Playnite's *Swap Confirm/Cancel Buttons* setting. The player's title bar and controls bar are real frosted glass (backdrop-blur over the live video); the title bar auto-hides during playback and reappears on input. Choose from **6 controls-bar styles** in settings (Player → Controls bar) with a live preview: **FrostedBlur** (default), **HeavyFrost**, **TintedPurple**, **MinimalGlass**, **GradientFade**, and **Performance** (a plain strip, lightest on the GPU).
 
 ## EML trailer note
 

@@ -3,9 +3,9 @@ Packages:
   - Version: 1.0.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: 2026-07-16
-    PackageUrl: 'https://github.com/aHuddini/FullVid/releases/download/1.0.0/FullVid-1_0_0.pext'
+    PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.0/FullVid-1_0_0.pext'
     Changelog:
-      - '[New Feature] Right-click a game and pick "FullVid" to search YouTube for its gameplay videos and trailers — results stream in instantly (thumbnails, titles, durations, channel, view counts) with no blocking progress dialog.'
+      - '[New Feature] Right-click a game and pick "FullReel" to search YouTube for its videos — trailers, gameplay, walkthroughs, reviews, and guides, browsed by category tab. Results stream in instantly (thumbnails, titles, durations, channel, view counts) with no blocking progress dialog.'
       - '[New Feature] Watch any result fullscreen in a borderless player that streams direct from YouTube — autoplays, requests hd1080 for 60fps streams, and plays smoothly. Driven fully by controller AND keyboard (play/pause, seek, volume, download, close), respecting Playnite''s Swap Confirm/Cancel setting.'
       - '[New Feature] Frosted-glass player UI: real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles (FrostedBlur, HeavyFrost, TintedPurple, MinimalGlass, GradientFade, Performance) and a live preview in settings.'
       - '[New Feature] Download a video into the game''s ExtraMetadataLoader folder as VideoTrailer.mp4 (H.264/AAC) so EML plays it as the game''s trailer. Download quality and cookies (browser or custom file) are configurable.'
