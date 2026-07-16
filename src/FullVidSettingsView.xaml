@@ -28,7 +28,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="20">
             <TextBlock Text="Download Tools" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-            <TextBlock Text="FullVid uses yt-dlp to fetch trailers and ffmpeg to process them. Point each to its .exe."
+            <TextBlock Text="FullReel uses yt-dlp to fetch videos and ffmpeg to process them. Point each to its .exe."
                        FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
             <!-- yt-dlp -->

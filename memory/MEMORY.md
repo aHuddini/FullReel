@@ -49,3 +49,12 @@
 - **NEVER RenderTargetBitmap.Render() it per-frame**: D3DImage falls back to CopyBackBuffer = full-frame GPU→CPU readback + WPF software re-raster on the UI dispatcher. ~8.3MB/frame at 1080p; stutters at any fps.
 - **Glass/blur over video = CSS backdrop-filter INSIDE the hosted page** (BuildPlayerHtml). Chromium blurs its own video GPU-side at full framerate; works over the cross-origin YT iframe (Viz flattens iframe quads before the backdrop filter). pointer-events:none keeps input in C#. Degrades to plain rgba tint if unsupported.
 - Requires WebView2 runtime 132+ (composition control stable).
+
+## BRANDING: "FullReel" is the user-facing name; "FullVid" is the internal project name (DO NOT rename the code)
+- **User-facing / display name = "FullReel"** (v1.0.0+ rebrand). This is what shows in Playnite's add-on list, menu item, dialog titles, docs, extension.yaml `Name`.
+- **Internal project identity stays "FullVid"** — DO NOT rename these, it breaks critical wiring / orphans user data:
+  - Repo folder `C:\Projects\UniPSound\FullVid`, C# namespace `FullVid`, assembly/DLL `FullVid.dll` (extension.yaml `Module: FullVid.dll`), class names (FullVidSettingsView etc.)
+  - `extension.yaml` **Id: FullVid.087df234-b55b-4824-a7a2-3adac1aec1ec** and installer `AddonId` — the GUID string is the addon identity; changing it makes existing installs a different addon (no upgrade path).
+  - `DialogHelper.PluginPropertyKey = "FullVidPlugin"`, pack URIs `pack://application:,,,/FullVid;component/...` (tied to assembly name).
+  - `Constants.ExtensionFolderName = "FullVid"` + `LogFileName = "FullVid.log"` — these are the user-data folder + log path; renaming orphans existing user data.
+- **Rule:** rebrand = display strings + docs + extension.yaml Name/Description only. Keep every code/data identifier as "FullVid". When editing, change quoted user-facing captions, NOT namespaces/Id/Module/pack-URIs/Constants.

@@ -66,9 +66,9 @@ namespace FullVid
             {
                 new GameMenuItem
                 {
-                    // Single top-level "FullVid" entry — clicking it opens the video dialog directly
+                    // Single top-level "FullReel" entry — clicking it opens the video dialog directly
                     // (no submenu). Surfaces cleanly in both Desktop and Fullscreen game options.
-                    Description = "FullVid",
+                    Description = "FullReel",
                     Action = _ => FindVideos(game)
                 }
             };
@@ -85,8 +85,8 @@ namespace FullVid
             if (string.IsNullOrWhiteSpace(ytDlpPath) || !System.IO.File.Exists(ytDlpPath))
             {
                 _api.Dialogs.ShowErrorMessage(
-                    "yt-dlp is not configured. Set its path in FullVid settings.",
-                    "FullVid");
+                    "yt-dlp is not configured. Set its path in FullReel settings.",
+                    "FullReel");
                 return;
             }
 
@@ -167,7 +167,7 @@ namespace FullVid
                 onClose: () => window?.Close(),
                 onCategoryChanged: runSearch);
 
-            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid", 760, 640, IsFullscreen);
+            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullReel", 760, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
             window.Closed += (s, e) => cts?.Cancel();
 
@@ -231,13 +231,13 @@ namespace FullVid
                 _api.Dialogs.ShowMessage(
                     "Trailer downloaded for \"" + (game.Name ?? "game") + "\".\n\n" +
                     "Re-select the game so ExtraMetadataLoader picks up the new trailer.",
-                    "FullVid");
+                    "FullReel");
             }
             else
             {
                 _api.Dialogs.ShowErrorMessage(
-                    "Trailer download failed. Check that yt-dlp and FFmpeg are configured in FullVid settings.",
-                    "FullVid");
+                    "Trailer download failed. Check that yt-dlp and FFmpeg are configured in FullReel settings.",
+                    "FullReel");
             }
         }
 

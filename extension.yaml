@@ -1,11 +1,11 @@
 Id: FullVid.087df234-b55b-4824-a7a2-3adac1aec1ec
-Name: FullVid
+Name: FullReel
 Author: Huddini
 Version: 1.0.0
 Module: FullVid.dll
 Type: GenericPlugin
 Icon: icon.png
-Description: Watch YouTube gameplay and trailer videos for your games in a fullscreen, controller-navigable player — and download them into the ExtraMetadataLoader folder as game trailers. A complement to ExtraMetadataLoader.
+Description: Browse and watch YouTube videos for your games — trailers, gameplay, walkthroughs, reviews, and guides — in a fullscreen, controller-navigable player. Download trailers into the ExtraMetadataLoader folder. A complement to ExtraMetadataLoader.
 Links:
   - Name: GitHub Repository
-    Url: https://github.com/aHuddini/FullVid
+    Url: https://github.com/aHuddini/FullReel

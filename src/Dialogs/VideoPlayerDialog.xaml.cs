@@ -135,7 +135,7 @@ namespace FullVid.Dialogs
                 _api?.Dialogs?.ShowErrorMessage(
                     "The WebView2 runtime is not installed, so video playback is unavailable.\n\n" +
                     "Install the Microsoft Edge WebView2 Evergreen runtime, then try again.",
-                    "FullVid");
+                    "FullReel");
                 window?.Close();
                 return;
             }
