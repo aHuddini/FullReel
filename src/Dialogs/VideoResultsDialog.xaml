@@ -39,7 +39,7 @@
 
         <TextBlock Grid.Row="0"
                    Name="DialogTitle"
-                   Text="Find Videos"
+                   Text="FullVid"
                    FontSize="24"
                    FontWeight="Bold"
                    Margin="0,0,0,12"

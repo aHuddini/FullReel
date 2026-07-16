@@ -66,10 +66,9 @@ namespace FullVid
             {
                 new GameMenuItem
                 {
-                    // MenuSection groups it under a named "FullVid" submenu — the same shape UPS
-                    // uses, which is what Fullscreen surfaces as a navigable game-options entry.
-                    Description = "Find Videos",
-                    MenuSection = "FullVid",
+                    // Single top-level "FullVid" entry — clicking it opens the video dialog directly
+                    // (no submenu). Surfaces cleanly in both Desktop and Fullscreen game options.
+                    Description = "FullVid",
                     Action = _ => FindVideos(game)
                 }
             };
@@ -110,7 +109,7 @@ namespace FullVid
                 },
                 onClose: () => window?.Close());
 
-            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid: Find Videos", 760, 640, IsFullscreen);
+            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid", 760, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
 
             // Cancel the search if the user closes the window before it finishes.
