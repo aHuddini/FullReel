@@ -43,7 +43,11 @@
             <RowDefinition x:Name="PerfBarRow" Height="Auto"/>  <!-- Performance strip (collapsed in frosted mode) -->
         </Grid.RowDefinitions>
 
-        <wv2:WebView2CompositionControl Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
+        <!-- Plain WebView2 (HwndHost), NOT the composition control: it renders video directly with
+             no per-frame Windows.Graphics.Capture → D3DImage copy, so playback is smooth. We don't
+             need composition anymore — the glass bars are in-page HTML (no WPF-over-webview
+             airspace), and the Performance strip sits in its own row below the video (no overlap). -->
+        <wv2:WebView2 Grid.Row="0" x:Name="Web" DefaultBackgroundColor="Black"/>
 
         <!-- PERFORMANCE: plain strip in its own row below the video. Hidden in frosted mode. -->
         <Border x:Name="PerfBar" Grid.Row="1"
