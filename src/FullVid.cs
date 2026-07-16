@@ -103,14 +103,24 @@ namespace FullVid
 
             // Only the newest search may push results — switching category cancels the prior one.
             CancellationTokenSource cts = null;
+            // Per-category result cache for this session: a category searched once is retained,
+            // so switching back to it is instant (no re-search).
+            var cache = new System.Collections.Generic.Dictionary<int, List<VideoResult>>();
 
             Window window = null;
             VideoResultsDialog dialog = null;
 
-            // Runs (or re-runs) the search for a category and streams results into the open dialog.
+            // Shows a category's results: instant from cache, else searches and caches on success.
             Action<int> runSearch = categoryIndex =>
             {
                 cts?.Cancel();
+
+                if (cache.TryGetValue(categoryIndex, out var cached))
+                {
+                    dialog.SetResults(cached); // already loaded this session — no re-search
+                    return;
+                }
+
                 var myCts = new CancellationTokenSource();
                 cts = myCts;
 
@@ -124,7 +134,12 @@ namespace FullVid
                         var search = new YouTubeSearchService(ytDlpPath, settings.DenoPath);
                         var results = await search.SearchAsync(query, count, myCts.Token).ConfigureAwait(false);
                         if (!myCts.IsCancellationRequested)
+                        {
+                            // Cache only non-empty results — a failed/empty search stays retryable.
+                            if (results != null && results.Count > 0)
+                                cache[categoryIndex] = results;
                             dialog.SetResults(results);
+                        }
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception ex)

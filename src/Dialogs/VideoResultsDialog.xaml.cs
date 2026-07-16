@@ -166,7 +166,7 @@ namespace FullVid.Dialogs
 
             if (_rows.Count > 0)
             {
-                StatusText.Visibility = Visibility.Collapsed;
+                StatusCard.Visibility = Visibility.Collapsed;
                 ResultsListBox.SelectedIndex = 0;
                 ResultsListBox.ScrollIntoView(ResultsListBox.SelectedItem);
                 ResultsListBox.Focus();
@@ -177,12 +177,14 @@ namespace FullVid.Dialogs
             }
         }
 
-        // Shows a status message (search error / empty) in place of the list.
+        // Shows a status message (searching / error / empty) in the frosted status card and
+        // clears any prior results so the card reads over an empty area, not stale rows.
         public void SetStatus(string message)
         {
             if (!Dispatcher.CheckAccess()) { Dispatcher.Invoke(() => SetStatus(message)); return; }
+            _rows.Clear();
             StatusText.Text = message ?? string.Empty;
-            StatusText.Visibility = Visibility.Visible;
+            StatusCard.Visibility = Visibility.Visible;
         }
 
         private void OnDialogLoaded(object sender, RoutedEventArgs e)

@@ -75,16 +75,30 @@
         <StackPanel Grid.Row="2" Name="CategoryTabs" Orientation="Horizontal"
                     HorizontalAlignment="Center" Margin="0,0,0,12"/>
 
-        <!-- Status line: shown while searching or when a search yields nothing/errors.
-             Collapsed once results arrive so it doesn't take list space. -->
-        <TextBlock Grid.Row="3"
-                   Name="StatusText"
-                   FontSize="15"
-                   Foreground="#DDDDDD"
-                   TextAlignment="Center"
-                   VerticalAlignment="Center"
-                   TextWrapping="Wrap"
-                   Text="Searching…"/>
+        <!-- Status card: shown while searching or when a search yields nothing/errors. A frosted
+             pill centered over the (empty) list area so it stands out instead of blending in.
+             Collapsed once results arrive. -->
+        <Border Grid.Row="3"
+                Name="StatusCard"
+                Background="#E0141414"
+                BorderBrush="#40FFFFFF"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="28,16"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="0" Opacity="0.6"/>
+            </Border.Effect>
+            <TextBlock Name="StatusText"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Foreground="#F0F0F0"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="520"
+                       Text="Searching…"/>
+        </Border>
 
         <!-- KeyboardNavigation.DirectionalNavigation="None" so D-pad→arrow translation
              doesn't double-navigate alongside our own XInput handler. -->
