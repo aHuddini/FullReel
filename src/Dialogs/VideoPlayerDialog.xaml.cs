@@ -264,10 +264,14 @@ namespace FullVid.Dialogs
                 "var player;" +
                 "function onYouTubeIframeAPIReady(){" +
                 "  player=new YT.Player('p',{videoId:'" + safeId + "'," +
-                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1}," +
-                // Once the video reaches PLAYING (state 1), start the hide timer — so the bar is
-                // clearly visible while the video buffers, then auto-hides.
-                "    events:{onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
+                // vq=hd1080 requests a high-res stream (60fps lives at 1080p+); YouTube treats it
+                // as a hint. onReady also suggests hd1080. Final quality is YouTube's call — the
+                // embed biases toward 'auto', so 60fps only plays if the video has it + net allows.
+                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,vq:'hd1080'}," +
+                "    events:{" +
+                "      onReady:function(){try{player.setPlaybackQuality('hd1080');}catch(e){}}," +
+                // Once the video reaches PLAYING (state 1), reveal the top bar then auto-hide.
+                "      onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
                 "}" +
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
