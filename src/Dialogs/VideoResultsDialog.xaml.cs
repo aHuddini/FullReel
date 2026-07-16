@@ -21,7 +21,9 @@ namespace FullVid.Dialogs
         Download,
         Close,
         NavigateUp,
-        NavigateDown
+        NavigateDown,
+        PrevCategory,  // LB / Q — switch to the previous search category
+        NextCategory   // RB / E — switch to the next search category
     }
 
     // Controller-navigable list of YouTube search results. A = watch, Y = download,
@@ -41,6 +43,9 @@ namespace FullVid.Dialogs
         private readonly Action<VideoResult> _onWatch;
         private readonly Action<VideoResult> _onDownload;
         private readonly Action _onClose;
+        private readonly Action<int> _onCategoryChanged;
+        private readonly System.Collections.Generic.IReadOnlyList<Models.VideoCategory> _categories;
+        private int _categoryIndex;
         private readonly ObservableCollection<ResultRow> _rows = new ObservableCollection<ResultRow>();
 
         // Pure button-decision seam. swapAB models Playnite's SwapConfirmCancelButtons:
@@ -61,27 +66,37 @@ namespace FullVid.Dialogs
                 return DialogAction.NavigateUp;
             if (button == ControllerInput.DPadDown)
                 return DialogAction.NavigateDown;
+            if (button == ControllerInput.LeftShoulder)
+                return DialogAction.PrevCategory;
+            if (button == ControllerInput.RightShoulder)
+                return DialogAction.NextCategory;
 
             return DialogAction.None;
         }
 
         public VideoResultsDialog(
             IPlayniteAPI api,
+            System.Collections.Generic.IReadOnlyList<Models.VideoCategory> categories,
             Action<VideoResult> onWatch,
             Action<VideoResult> onDownload,
-            Action onClose)
+            Action onClose,
+            Action<int> onCategoryChanged)
         {
             InitializeComponent();
 
             _api = api;
+            _categories = categories;
             _onWatch = onWatch;
             _onDownload = onDownload;
             _onClose = onClose;
+            _onCategoryChanged = onCategoryChanged;
 
             // Read the confirm/cancel swap once, up front. Read-only SDK property; default
             // to un-swapped on any failure so A always confirms in the worst case.
             try { _swapAB = api?.ApplicationSettings?.Fullscreen?.SwapConfirmCancelButtons ?? false; }
             catch { _swapAB = false; }
+
+            BuildCategoryTabs();
 
             // Opens empty in a "Searching…" state; the caller pushes results via SetResults
             // once its background search completes — the window never blocks on the search.
@@ -89,6 +104,54 @@ namespace FullVid.Dialogs
 
             Loaded += OnDialogLoaded;
             Unloaded += OnDialogUnloaded;
+        }
+
+        // Builds the clickable category tab row (mouse) and highlights the active one. LB/RB
+        // and clicks both route to SwitchCategory. Tabs are TextBlocks in the CategoryTabs panel.
+        private void BuildCategoryTabs()
+        {
+            CategoryTabs.Children.Clear();
+            if (_categories == null) return;
+            for (int i = 0; i < _categories.Count; i++)
+            {
+                var idx = i;
+                var tab = new TextBlock
+                {
+                    Text = _categories[i].Label,
+                    Margin = new Thickness(0, 0, 18, 0),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    FontSize = 14
+                };
+                tab.MouseLeftButtonUp += (s, e) => SwitchCategory(idx);
+                CategoryTabs.Children.Add(tab);
+            }
+            HighlightActiveTab();
+        }
+
+        // Switch to a category (bounded), re-run the search via the callback, restyle tabs.
+        private void SwitchCategory(int index)
+        {
+            if (_categories == null || _categories.Count == 0) return;
+            index = Math.Max(0, Math.Min(_categories.Count - 1, index));
+            if (index == _categoryIndex && _rows.Count > 0) return; // no-op re-click of active tab
+            _categoryIndex = index;
+            HighlightActiveTab();
+            _onCategoryChanged?.Invoke(index);
+        }
+
+        private void HighlightActiveTab()
+        {
+            for (int i = 0; i < CategoryTabs.Children.Count; i++)
+            {
+                if (CategoryTabs.Children[i] is TextBlock tb)
+                {
+                    bool active = i == _categoryIndex;
+                    tb.Foreground = active
+                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xB3, 0x9D, 0xDB))
+                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x99, 0x99, 0x99));
+                    tb.FontWeight = active ? FontWeights.Bold : FontWeights.Normal;
+                }
+            }
         }
 
         // Called on the UI thread when the background search returns. Populates the list,
@@ -159,6 +222,8 @@ namespace FullVid.Dialogs
                 case System.Windows.Input.Key.Up: action = DialogAction.NavigateUp; break;
                 case System.Windows.Input.Key.Down: action = DialogAction.NavigateDown; break;
                 case System.Windows.Input.Key.D: action = _rows.Count > 0 ? DialogAction.Download : DialogAction.None; break;
+                case System.Windows.Input.Key.Q: action = DialogAction.PrevCategory; break;
+                case System.Windows.Input.Key.E: action = DialogAction.NextCategory; break;
                 default: return;
             }
 
@@ -209,6 +274,12 @@ namespace FullVid.Dialogs
                     break;
                 case DialogAction.NavigateDown:
                     if (keyboard || TryDpadNavigation()) Navigate(1);
+                    break;
+                case DialogAction.PrevCategory:
+                    SwitchCategory(_categoryIndex - 1);
+                    break;
+                case DialogAction.NextCategory:
+                    SwitchCategory(_categoryIndex + 1);
                     break;
             }
         }

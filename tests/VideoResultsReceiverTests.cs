@@ -33,6 +33,14 @@ namespace FullVid.Tests
             Assert.That(VideoResultsDialog.Decide(ControllerInput.DPadUp, 1, 3, false), Is.EqualTo(DialogAction.NavigateUp));
 
         [Test]
+        public void LeftShoulder_ReturnsPrevCategory() =>
+            Assert.That(VideoResultsDialog.Decide(ControllerInput.LeftShoulder, 0, 3, false), Is.EqualTo(DialogAction.PrevCategory));
+
+        [Test]
+        public void RightShoulder_ReturnsNextCategory() =>
+            Assert.That(VideoResultsDialog.Decide(ControllerInput.RightShoulder, 0, 3, false), Is.EqualTo(DialogAction.NextCategory));
+
+        [Test]
         public void UnmappedButton_ReturnsNone() =>
             Assert.That(VideoResultsDialog.Decide(ControllerInput.Start, 0, 3, false), Is.EqualTo(DialogAction.None));
 

@@ -90,13 +90,55 @@ namespace FullVid
                 return;
             }
 
-            var query = (settings.QueryTemplate ?? string.Empty).Replace("{name}", game.Name ?? string.Empty);
+            var categories = VideoCategory.Defaults;
             var count = settings.SearchResultCount;
-            var cts = new CancellationTokenSource();
+            var gameName = game.Name ?? string.Empty;
+
+            // Query for a category: Trailers (index 0) honours the user's QueryTemplate; the rest
+            // use "{gameName} {suffix}".
+            Func<VideoCategory, string> buildQuery = c =>
+                c == categories[0]
+                    ? (settings.QueryTemplate ?? string.Empty).Replace("{name}", gameName)
+                    : (gameName + " " + c.QuerySuffix).Trim();
+
+            // Only the newest search may push results — switching category cancels the prior one.
+            CancellationTokenSource cts = null;
 
             Window window = null;
-            var dialog = new VideoResultsDialog(
+            VideoResultsDialog dialog = null;
+
+            // Runs (or re-runs) the search for a category and streams results into the open dialog.
+            Action<int> runSearch = categoryIndex =>
+            {
+                cts?.Cancel();
+                var myCts = new CancellationTokenSource();
+                cts = myCts;
+
+                var query = buildQuery(categories[categoryIndex]);
+                dialog.SetStatus("Searching for \"" + query + "\"…");
+
+                System.Threading.Tasks.Task.Run(async () =>
+                {
+                    try
+                    {
+                        var search = new YouTubeSearchService(ytDlpPath, settings.DenoPath);
+                        var results = await search.SearchAsync(query, count, myCts.Token).ConfigureAwait(false);
+                        if (!myCts.IsCancellationRequested)
+                            dialog.SetResults(results);
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex)
+                    {
+                        _fileLogger?.Error("YouTube search failed: " + ex.Message);
+                        if (!myCts.IsCancellationRequested)
+                            dialog.SetStatus("Search failed. Check yt-dlp in settings.");
+                    }
+                });
+            };
+
+            dialog = new VideoResultsDialog(
                 _api,
+                categories,
                 onWatch: v =>
                 {
                     window?.Close();
@@ -107,38 +149,16 @@ namespace FullVid
                     window?.Close();
                     DownloadVideo(game, v);
                 },
-                onClose: () => window?.Close());
+                onClose: () => window?.Close(),
+                onCategoryChanged: runSearch);
 
             window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullVid", 760, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
+            window.Closed += (s, e) => cts?.Cancel();
 
-            // Cancel the search if the user closes the window before it finishes.
-            window.Closed += (s, e) => cts.Cancel();
-            dialog.SetStatus("Searching for \"" + query + "\"…");
-
-            // Fire the search off-thread; marshal the outcome back onto the dialog (which
-            // dispatches to the UI thread itself). Guarded so a cancel/failure never throws
-            // into an unobserved task.
-            System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    var search = new YouTubeSearchService(ytDlpPath, settings.DenoPath);
-                    var results = await search.SearchAsync(query, count, cts.Token).ConfigureAwait(false);
-                    if (!cts.IsCancellationRequested)
-                        dialog.SetResults(results);
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    _fileLogger?.Error("YouTube search failed: " + ex.Message);
-                    if (!cts.IsCancellationRequested)
-                        dialog.SetStatus("Search failed. Check yt-dlp in settings.");
-                }
-            });
-
+            runSearch(0); // initial category: Trailers
             window.ShowDialog();
-            cts.Dispose();
+            cts?.Dispose();
         }
 
         // Opens the fullscreen WebView2 player for the chosen result. The bridge (default

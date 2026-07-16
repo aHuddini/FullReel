@@ -34,6 +34,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>  <!-- Title -->
             <RowDefinition Height="Auto"/>  <!-- Controller hint -->
+            <RowDefinition Height="Auto"/>  <!-- Category tabs -->
             <RowDefinition Height="*"/>     <!-- Results list -->
         </Grid.RowDefinitions>
 
@@ -64,13 +65,19 @@
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="D-Pad / Arrows" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Navigate" Foreground="#F5F5F5"/>
                 <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="LB / RB · Q / E" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Category" Foreground="#F5F5F5"/>
+                <Run Text="   •   " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
         </Border>
 
+        <!-- Category tabs (mouse-clickable; LB/RB and Q/E cycle). Populated + styled in code-behind. -->
+        <StackPanel Grid.Row="2" Name="CategoryTabs" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Margin="0,0,0,12"/>
+
         <!-- Status line: shown while searching or when a search yields nothing/errors.
              Collapsed once results arrive so it doesn't take list space. -->
-        <TextBlock Grid.Row="2"
+        <TextBlock Grid.Row="3"
                    Name="StatusText"
                    FontSize="15"
                    Foreground="#DDDDDD"
@@ -81,7 +88,7 @@
 
         <!-- KeyboardNavigation.DirectionalNavigation="None" so D-pad→arrow translation
              doesn't double-navigate alongside our own XInput handler. -->
-        <ListBox Grid.Row="2"
+        <ListBox Grid.Row="3"
                  Name="ResultsListBox"
                  ItemContainerStyle="{StaticResource ResultCardStyle}"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
