@@ -502,7 +502,11 @@ namespace FullVid.Dialogs
         // is treated as that duplicate and dropped; different actions pass through untouched.
         private PlayerAction _lastKeyAction = PlayerAction.None;
         private DateTime _lastKeyTime = DateTime.MinValue;
-        private const int KeyDedupeMs = 120;
+        // Wide enough to swallow the slow twin: the WebMessage copy of a key can arrive well
+        // after the WPF re-raise under load (>120ms was observed — toggles like F cancelled
+        // themselves while idempotent keys like Esc appeared to work). Costs: arrow-hold seek
+        // repeats throttle to ~3/sec, which is fine for 10s jumps.
+        private const int KeyDedupeMs = 350;
 
         private void DispatchKeyboardAction(PlayerAction action)
         {
