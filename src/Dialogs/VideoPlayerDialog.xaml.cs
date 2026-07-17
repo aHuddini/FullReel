@@ -115,6 +115,19 @@ namespace FullVid.Dialogs
             if (window != null)
                 window.PreviewKeyDown += OnPreviewKeyDown;
 
+            // TEMP [KbdDiag]: trace every input/focus layer so we can see exactly which one dies
+            // after alt-tab. Remove once the focus issue is settled.
+            if (window != null)
+            {
+                window.Deactivated += (s2, e2) => Logger.Info("[KbdDiag] window Deactivated");
+                window.GotKeyboardFocus += (s2, e2) =>
+                    Logger.Info("[KbdDiag] window GotKeyboardFocus new=" + (e2.NewFocus?.GetType().Name ?? "null"));
+                window.LostKeyboardFocus += (s2, e2) =>
+                    Logger.Info("[KbdDiag] window LostKeyboardFocus old=" + (e2.OldFocus?.GetType().Name ?? "null"));
+            }
+            Web.GotFocus += (s2, e2) => Logger.Info("[KbdDiag] WebView2 GotFocus");
+            Web.LostFocus += (s2, e2) => Logger.Info("[KbdDiag] WebView2 LostFocus");
+
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
             if (window != null)
@@ -370,8 +383,18 @@ namespace FullVid.Dialogs
         // deferred so it lands after WPF finishes its own activation focus handling.
         private void OnWindowActivated(object sender, EventArgs e)
         {
-            Dispatcher.BeginInvoke(new Action(() => { try { Web?.Focus(); } catch { } }),
-                System.Windows.Threading.DispatcherPriority.Input);
+            Logger.Info("[KbdDiag] window Activated — refocusing web view");
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    Web?.Focus();
+                    Logger.Info("[KbdDiag] post-refocus: Keyboard.FocusedElement=" +
+                        (System.Windows.Input.Keyboard.FocusedElement?.GetType().Name ?? "null") +
+                        " Web.IsKeyboardFocusWithin=" + (Web?.IsKeyboardFocusWithin ?? false));
+                }
+                catch (Exception ex) { Logger.Info("[KbdDiag] refocus threw: " + ex.Message); }
+            }), System.Windows.Threading.DispatcherPriority.Input);
         }
 
         // On the hosting window's Closed — the single choke point for every close path.
@@ -423,6 +446,7 @@ namespace FullVid.Dialogs
             try
             {
                 var msg = e.TryGetWebMessageAsString();
+                Logger.Info("[KbdDiag] WebMessage: " + (msg ?? "null"));
                 if (string.IsNullOrEmpty(msg) || !msg.StartsWith("key:")) return;
                 var key = msg.Substring(4);
                 PlayerAction action;
@@ -453,6 +477,7 @@ namespace FullVid.Dialogs
         // same deduped dispatch.
         private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            Logger.Info("[KbdDiag] WPF PreviewKeyDown: " + e.Key);
             PlayerAction action;
             switch (e.Key)
             {

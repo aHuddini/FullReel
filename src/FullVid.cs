@@ -151,25 +151,46 @@ namespace FullVid
                 });
             };
 
+            // UPS stays paused for the WHOLE FullReel session: paused when the search dialog
+            // opens, held through watch/download handoffs (no resume blip between windows), and
+            // resumed only when the user is fully out.
+            var bridge = new UniPlaySongBridge(new ProcessUriInvoker());
+            var upsPaused = false;
+            if (settings.PauseUniPlaySong)
+            {
+                bridge.Pause();
+                upsPaused = true;
+            }
+            var handedOff = false; // true while a watch/download continues the session
+
             dialog = new VideoResultsDialog(
                 _api,
                 categories,
                 onWatch: v =>
                 {
+                    handedOff = true;
                     window?.Close();
-                    WatchVideo(game, v);
+                    WatchVideo(game, v); // player pauses/resumes UPS around itself
                 },
                 onDownload: v =>
                 {
+                    handedOff = true;
                     window?.Close();
                     DownloadVideo(game, v);
+                    if (upsPaused) bridge.Resume(); // download done — session over
                 },
                 onClose: () => window?.Close(),
                 onCategoryChanged: runSearch);
 
             window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullReel", 900, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
-            window.Closed += (s, e) => cts?.Cancel();
+            window.Closed += (s, e) =>
+            {
+                cts?.Cancel();
+                // Resume only when the session truly ends here (B/Esc on the results). Watch and
+                // download paths resume via their own completion instead.
+                if (upsPaused && !handedOff) bridge.Resume();
+            };
 
             runSearch(0); // initial category: Trailers
             window.ShowDialog();
