@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="256" viewBox="0 0 640 256">
+  <!-- Layer 1: badge — rounded dark plate behind everything -->
+  <defs><linearGradient id="acc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#EC4899"/></linearGradient></defs>
+  <g id="badge">
+    <rect x="8" y="8" width="624" height="240" rx="28" fill="#14121a"/>
+    <rect x="8" y="8" width="624" height="240" rx="28" fill="none" stroke="url(#acc)" stroke-opacity="0.35" stroke-width="2"/>
+  </g>
+
+  <!-- Layer 2: reel — film reel: outer ring + five spoke-holes (play triangle is the hub) -->
+  <g id="reel">
+    <circle cx="128" cy="128" r="78" fill="none" stroke="url(#acc)" stroke-width="14"/>
+    <circle cx="128" cy="76"  r="15" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="177" cy="112" r="15" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="158" cy="170" r="15" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="98"  cy="170" r="15" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="79"  cy="112" r="15" fill="url(#acc)" fill-opacity="0.55"/>
+  </g>
+
+  <!-- Layer 3: play — triangle as the reel's hub -->
+  <g id="play">
+    <path d="M 112 102 L 156 128 L 112 154 Z" fill="#F5F5F5" stroke="#F5F5F5" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Layer 4: wordmark — "FullReel", Reel in accent -->
+  <g id="wordmark" font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    <text x="248" y="146" font-size="72" fill="#F5F5F5">Full<tspan fill="url(#acc)">Reel</tspan></text>
+    <text x="252" y="182" font-size="19" font-weight="400" fill="#9a93a8" letter-spacing="1.5">GAME VIDEOS · FULLSCREEN</text>
+  </g>
+</svg>

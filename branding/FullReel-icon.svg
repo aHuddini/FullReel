@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Layer 1: tv — big TV: screen shell, stand neck + base -->
+  <defs><linearGradient id="acc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#EC4899"/></linearGradient></defs>
+  <g id="tv">
+    <rect x="16" y="28" width="224" height="150" rx="18" fill="#14121a" stroke="url(#acc)" stroke-width="10"/>
+    <rect x="118" y="178" width="20" height="18" fill="url(#acc)"/>
+    <rect x="76" y="196" width="104" height="12" rx="6" fill="url(#acc)"/>
+  </g>
+
+  <!-- Layer 2: reel — film reel centered on the TV screen -->
+  <g id="reel">
+    <circle cx="128" cy="103" r="52" fill="none" stroke="url(#acc)" stroke-width="10"/>
+    <circle cx="128" cy="68"  r="10" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="161" cy="92"  r="10" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="148" cy="131" r="10" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="108" cy="131" r="10" fill="url(#acc)" fill-opacity="0.55"/>
+    <circle cx="95"  cy="92"  r="10" fill="url(#acc)" fill-opacity="0.55"/>
+  </g>
+
+  <!-- Layer 3: play — triangle as the reel's hub -->
+  <g id="play">
+    <path d="M 117 86 L 146 103 L 117 120 Z" fill="#F5F5F5" stroke="#F5F5F5" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Layer 4: controller — gamepad by the reel's lower-right. Dark halo first (separates it
+       from the purple reel ring behind), then the purple body, then dark D-pad/buttons. -->
+  <g id="controller">
+    <!-- dark halo/outline -->
+    <circle cx="167" cy="149" r="21" fill="#14121a"/>
+    <circle cx="213" cy="149" r="21" fill="#14121a"/>
+    <rect x="167" y="128" width="46" height="42" fill="#14121a"/>
+    <!-- purple body: left grip, right grip, bridge -->
+    <circle cx="167" cy="149" r="16" fill="url(#acc)"/>
+    <circle cx="213" cy="149" r="16" fill="url(#acc)"/>
+    <rect x="167" y="133" width="46" height="32" fill="url(#acc)"/>
+    <!-- D-pad cross (left) -->
+    <rect x="160" y="146" width="16" height="6" rx="1.5" fill="#14121a"/>
+    <rect x="165" y="141" width="6" height="16" rx="1.5" fill="#14121a"/>
+    <!-- face buttons (right, ABXY diamond) -->
+    <circle cx="213" cy="141.5" r="3"   fill="#14121a"/>
+    <circle cx="213" cy="156.5" r="3"   fill="#14121a"/>
+    <circle cx="205.5" cy="149" r="3"   fill="#14121a"/>
+    <circle cx="220.5" cy="149" r="3"   fill="#14121a"/>
+  </g>
+</svg>

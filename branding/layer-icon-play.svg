@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Layer 1: tv — big TV: screen shell, stand neck + base -->
+  <defs><linearGradient id="acc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#EC4899"/></linearGradient></defs>
+  <!-- Layer 2: reel — film reel centered on the TV screen -->
+  <!-- Layer 3: play — triangle as the reel's hub -->
+  <g id="play">
+    <path d="M 117 86 L 146 103 L 117 120 Z" fill="#F5F5F5" stroke="#F5F5F5" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Layer 4: controller — gamepad by the reel's lower-right. Dark halo first (separates it
+       from the purple reel ring behind), then the purple body, then dark D-pad/buttons. -->
+  </svg>
