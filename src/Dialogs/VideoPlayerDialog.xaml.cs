@@ -106,11 +106,14 @@ namespace FullVid.Dialogs
 
             SetupHintBar();
 
-            // Keyboard is handled by the in-page keydown capture (BuildPlayerHtml) posting to
-            // OnWebMessageReceived — the ONLY keyboard path. A WPF PreviewKeyDown fallback here
-            // double-fired every shortcut (WebView2's WPF integration re-raises keys), making
-            // toggles like fullscreen cancel themselves out.
+            // Keyboard arrives on TWO paths, deduped in DispatchKeyboardAction: the in-page
+            // capture (works while the web view has focus, and preventDefaults YouTube's own
+            // keys) and this WPF PreviewKeyDown (works when focus is anywhere else — e.g. after
+            // alt-tab, when WebView2 never regains its inner HWND focus). Either alone proved
+            // fragile: web-only died after alt-tab; both without dedupe double-fired toggles.
             var window = Window.GetWindow(this);
+            if (window != null)
+                window.PreviewKeyDown += OnPreviewKeyDown;
 
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
@@ -378,6 +381,7 @@ namespace FullVid.Dialogs
             {
                 w.Closed -= OnWindowClosed;
                 w.Activated -= OnWindowActivated;
+                w.PreviewKeyDown -= OnPreviewKeyDown;
             }
 
             if (_upsPaused)
@@ -436,12 +440,53 @@ namespace FullVid.Dialogs
                     case "Escape": action = PlayerAction.Close; break;
                     default: return;
                 }
-                DispatchAction(action, keyboard: true);
+                DispatchKeyboardAction(action);
             }
             catch (Exception ex)
             {
                 Logger.Error(ex, "Error handling web-message key in VideoPlayerDialog");
             }
+        }
+
+        // WPF-side keyboard (fires when focus is outside the web view — e.g. after alt-tab, or
+        // re-raised by WebView2's WPF integration while the web view IS focused). Same mapping,
+        // same deduped dispatch.
+        private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            PlayerAction action;
+            switch (e.Key)
+            {
+                case System.Windows.Input.Key.Space:
+                case System.Windows.Input.Key.K: action = PlayerAction.PlayPause; break;
+                case System.Windows.Input.Key.Escape: action = PlayerAction.Close; break;
+                case System.Windows.Input.Key.Right: action = PlayerAction.SeekForward; break;
+                case System.Windows.Input.Key.Left: action = PlayerAction.SeekBackward; break;
+                case System.Windows.Input.Key.Up: action = PlayerAction.VolumeUp; break;
+                case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
+                case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
+                case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
+                case System.Windows.Input.Key.P: action = PlayerAction.Screenshot; break;
+                default: return;
+            }
+            e.Handled = true;
+            DispatchKeyboardAction(action);
+        }
+
+        // Dedupes the two keyboard paths: one physical press can arrive from both the in-page
+        // capture and WPF PreviewKeyDown within milliseconds. The SAME action inside the window
+        // is treated as that duplicate and dropped; different actions pass through untouched.
+        private PlayerAction _lastKeyAction = PlayerAction.None;
+        private DateTime _lastKeyTime = DateTime.MinValue;
+        private const int KeyDedupeMs = 120;
+
+        private void DispatchKeyboardAction(PlayerAction action)
+        {
+            var now = DateTime.Now;
+            if (action == _lastKeyAction && (now - _lastKeyTime).TotalMilliseconds < KeyDedupeMs)
+                return;
+            _lastKeyAction = action;
+            _lastKeyTime = now;
+            DispatchAction(action, keyboard: true);
         }
 
         private ControllerEventRouter GetRouter()
