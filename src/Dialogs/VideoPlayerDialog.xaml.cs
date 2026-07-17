@@ -21,7 +21,8 @@ namespace FullVid.Dialogs
         SeekBackward,
         VolumeUp,
         VolumeDown,
-        Download
+        Download,
+        ToggleFullscreen  // X / F — expand the player to fill the screen and back
     }
 
     // Fullscreen WebView2 YouTube player. Transport is driven entirely from C#
@@ -68,6 +69,7 @@ namespace FullVid.Dialogs
             if (button == ControllerInput.DPadUp) return PlayerAction.VolumeUp;
             if (button == ControllerInput.DPadDown) return PlayerAction.VolumeDown;
             if (button == ControllerInput.Y) return PlayerAction.Download;
+            if (button == ControllerInput.Back) return PlayerAction.ToggleFullscreen;
 
             return PlayerAction.None;
         }
@@ -267,6 +269,8 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">Y / D</b> Download" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#B39DDB\">Select / F</b> Fullscreen" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close" +
                 "</div>";
 
@@ -394,6 +398,7 @@ namespace FullVid.Dialogs
                 case System.Windows.Input.Key.Up: action = PlayerAction.VolumeUp; break;
                 case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
                 case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
+                case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
                 default: return;
             }
 
@@ -432,7 +437,21 @@ namespace FullVid.Dialogs
                 case PlayerAction.Close:
                     Window.GetWindow(this)?.Close();
                     break;
+                case PlayerAction.ToggleFullscreen:
+                    ToggleFullscreen();
+                    break;
             }
+        }
+
+        // Expand the borderless player to fill the screen (Maximized) and back to windowed.
+        // The window is already WindowStyle=None, so Maximized is true borderless fullscreen.
+        private void ToggleFullscreen()
+        {
+            var w = Window.GetWindow(this);
+            if (w == null) return;
+            w.WindowState = w.WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
