@@ -258,18 +258,9 @@ namespace FullVid.Dialogs
                 brandMark + HtmlEscape(title) +
                 "</div>";
 
-            // Progress row: live "current / total" time text (no visual scrubber).
-            var progressRow =
-                "<div style=\"margin:0 auto 8px;font:600 13px 'Segoe UI',sans-serif;color:#DDD;\">" +
-                "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></div>";
-
-            var bottomBar = !frostedBar ? "" :
-                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
-                "pointer-events:none;padding:" + botPad + ";text-align:center;" +
-                "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
-                "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
-                "transition:transform .35s ease,opacity .35s ease;\">" +
-                progressRow +
+            // Legend + inline time on ONE row: controls centered, "current / total" subtly at the
+            // far right. Grid keeps the legend truly centered regardless of the time width.
+            const string legend =
                 "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">◄ ►</b> Seek 10s" +
@@ -282,7 +273,19 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">RB / P</b> Screenshot" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#EF9A9A\">B / Esc</b> Close" +
+                "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
+
+            var bottomBar = !frostedBar ? "" :
+                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
+                "pointer-events:none;padding:" + botPad + ";box-sizing:border-box;" +
+                "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
+                "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
+                "transition:transform .35s ease,opacity .35s ease;" +
+                "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
+                "<span></span>" +
+                "<span style=\"text-align:center\">" + legend + "</span>" +
+                "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
+                "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
                 "</div>";
 
             return
@@ -304,15 +307,19 @@ namespace FullVid.Dialogs
                 "}" +
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
-                // Auto-hide both bars together. fvShow() reveals top+bottom and (re)arms a 4s hide;
-                // C# pokes it on every input so they always reappear. Re-applies props each call so
-                // they can't get stuck hidden. fvShowTop is kept as an alias for existing callers.
-                "var _tt;" +
+                // Bar visibility. The TOP bar always auto-hides after 4s (its established behavior).
+                // The BOTTOM bar only auto-hides when fvBottomAuto is on — C# sets that ONLY while
+                // the player is expanded to fullscreen, so the windowed player keeps its bar shown.
+                // fvShow() reveals both + rearms the timers; C# pokes it on every input.
+                "var _tt,_tb,fvBottomAuto=false;" +
                 "function _set(id,show,dir){var e=document.getElementById(id);if(!e)return;" +
                 "e.style.opacity=show?'1':'0';e.style.transform=show?'translateY(0)':('translateY('+dir+'100%)');}" +
+                "window.fvSetBottomAuto=function(on){fvBottomAuto=!!on;" +
+                "if(!fvBottomAuto){if(_tb)clearTimeout(_tb);_set('bbar',1,'');}else fvShow();};" +
                 "window.fvShow=function(){_set('tbar',1,'-');_set('bbar',1,'');" +
-                "if(_tt)clearTimeout(_tt);" +
-                "_tt=setTimeout(function(){_set('tbar',0,'-');_set('bbar',0,'');},4000);};" +
+                "if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){_set('tbar',0,'-');},4000);" +
+                "if(_tb)clearTimeout(_tb);" +
+                "if(fvBottomAuto)_tb=setTimeout(function(){_set('bbar',0,'');},4000);};" +
                 "window.fvShowTop=window.fvShow;" +
                 // Progress ticker: update the current / total time labels ~2x/sec.
                 "function _fmt(s){s=Math.max(0,Math.floor(s||0));var m=Math.floor(s/60);" +
@@ -514,12 +521,14 @@ namespace FullVid.Dialogs
                 w.Left = screen.Left; w.Top = screen.Top;
                 w.Width = screen.Width; w.Height = screen.Height;
                 _isFullscreen = true;
+                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(true);");  // bottom bar auto-hides in fullscreen
             }
             else
             {
                 w.Left = _windowedBounds.Left; w.Top = _windowedBounds.Top;
                 w.Width = _windowedBounds.Width; w.Height = _windowedBounds.Height;
                 _isFullscreen = false;
+                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(false);"); // windowed: bottom bar stays
             }
         }
 
