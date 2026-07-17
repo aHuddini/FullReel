@@ -167,7 +167,7 @@ namespace FullVid
                 onClose: () => window?.Close(),
                 onCategoryChanged: runSearch);
 
-            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullReel", 760, 640, IsFullscreen);
+            window = DialogHelper.CreateFullscreenDialog(_api, dialog, "FullReel", 900, 640, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "FindVideos");
             window.Closed += (s, e) => cts?.Cancel();
 
