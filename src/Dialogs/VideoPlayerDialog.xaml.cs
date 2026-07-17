@@ -115,7 +115,13 @@ namespace FullVid.Dialogs
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
             if (window != null)
+            {
                 window.Closed += OnWindowClosed;
+                // Alt-tab away/back reactivates the window but does NOT return focus to the
+                // WebView2 HWND — and the in-page capture is the only keyboard path, so keys
+                // would be dead. Push focus back into the web view on every (re)activation.
+                window.Activated += OnWindowActivated;
+            }
 
             // Pause UniPlaySong here (not in the ctor) so pause and the resume-wire above are
             // atomic — a control that's constructed but never Loaded can't leave UPS stuck paused.
@@ -357,12 +363,21 @@ namespace FullVid.Dialogs
             GetRouter()?.Unregister(this);
         }
 
+        // Re-focus the web view whenever the window becomes active again (alt-tab back, etc.) —
+        // deferred so it lands after WPF finishes its own activation focus handling.
+        private void OnWindowActivated(object sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() => { try { Web?.Focus(); } catch { } }),
+                System.Windows.Threading.DispatcherPriority.Input);
+        }
+
         // On the hosting window's Closed — the single choke point for every close path.
         private void OnWindowClosed(object sender, EventArgs e)
         {
             if (sender is Window w)
             {
                 w.Closed -= OnWindowClosed;
+                w.Activated -= OnWindowActivated;
             }
 
             if (_upsPaused)
