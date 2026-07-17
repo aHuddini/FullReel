@@ -228,6 +228,20 @@ namespace FullVid.Dialogs
             var topPad = style == PlayerBarStyle.GradientFade ? "18px 18px 30px" : "12px 18px";
             var botPad = style == PlayerBarStyle.GradientFade ? "30px 8px 14px" : "13px 8px";
 
+            // Brand mark: the FullReel reel + play-triangle hub (TV/controller omitted), inline
+            // SVG so it stays crisp at bar size. Violet→pink gradient matches the branding.
+            const string brandMark =
+                "<svg width='26' height='26' viewBox='0 0 120 120' style='vertical-align:-7px;margin-right:10px'>" +
+                "<defs><linearGradient id='fvlg' x1='0' y1='0' x2='1' y2='1'>" +
+                "<stop offset='0' stop-color='#8B5CF6'/><stop offset='1' stop-color='#EC4899'/></linearGradient></defs>" +
+                "<circle cx='60' cy='60' r='46' fill='none' stroke='url(#fvlg)' stroke-width='11'/>" +
+                "<circle cx='60' cy='29' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
+                "<circle cx='89' cy='50' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
+                "<circle cx='78' cy='85' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
+                "<circle cx='42' cy='85' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
+                "<circle cx='31' cy='50' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
+                "<path d='M 50 45 L 76 60 L 50 75 Z' fill='#F5F5F5'/></svg>";
+
             // Both bars are pointer-events:none — display-only; all input stays in C#. The top bar
             // auto-hides during playback and reappears on any input (fvShowTop() JS + C# poke).
             var topBar = !frostedBar ? "" :
@@ -237,7 +251,7 @@ namespace FullVid.Dialogs
                 "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
                 "background:" + topBg + ";border-bottom:" + topBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;\">" +
-                HtmlEscape(title) +
+                brandMark + HtmlEscape(title) +
                 "</div>";
 
             var bottomBar = !frostedBar ? "" :
