@@ -22,7 +22,8 @@ namespace FullVid.Dialogs
         VolumeUp,
         VolumeDown,
         Download,
-        ToggleFullscreen  // X / F — expand the player to fill the screen and back
+        ToggleFullscreen,  // Select / F — expand the player to fill the screen and back
+        Screenshot         // RB / P — save a PNG of the current video frame
     }
 
     // Fullscreen WebView2 YouTube player. Transport is driven entirely from C#
@@ -70,6 +71,7 @@ namespace FullVid.Dialogs
             if (button == ControllerInput.DPadDown) return PlayerAction.VolumeDown;
             if (button == ControllerInput.Y) return PlayerAction.Download;
             if (button == ControllerInput.Back) return PlayerAction.ToggleFullscreen;
+            if (button == ControllerInput.RightShoulder) return PlayerAction.Screenshot;
 
             return PlayerAction.None;
         }
@@ -271,6 +273,8 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">Select / F</b> Fullscreen" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
+                "<b style=\"color:#B39DDB\">RB / P</b> Screenshot" +
+                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close" +
                 "</div>";
 
@@ -399,6 +403,7 @@ namespace FullVid.Dialogs
                 case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
                 case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
                 case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
+                case System.Windows.Input.Key.P: action = PlayerAction.Screenshot; break;
                 default: return;
             }
 
@@ -440,18 +445,67 @@ namespace FullVid.Dialogs
                 case PlayerAction.ToggleFullscreen:
                     ToggleFullscreen();
                     break;
+                case PlayerAction.Screenshot:
+                    _ = CaptureScreenshot();
+                    break;
             }
         }
 
-        // Expand the borderless player to fill the screen (Maximized) and back to windowed.
-        // The window is already WindowStyle=None, so Maximized is true borderless fullscreen.
+        // Save a PNG of the current video frame. Uses CoreWebView2.CapturePreviewAsync — it grabs
+        // the actual rendered web content (the video), which a WPF window snapshot can't reach for
+        // the WebView2 HwndHost surface. Lands in the plugin's Screenshots folder.
+        private async System.Threading.Tasks.Task CaptureScreenshot()
+        {
+            try
+            {
+                if (Web?.CoreWebView2 == null) return;
+                var dir = System.IO.Path.Combine(
+                    _api.Paths.ConfigurationPath, "ExtraMetadata", "FullReel", "Screenshots");
+                System.IO.Directory.CreateDirectory(dir);
+                var safe = System.Text.RegularExpressions.Regex.Replace(_video?.Title ?? "video", "[^A-Za-z0-9 _-]", "").Trim();
+                if (safe.Length > 60) safe = safe.Substring(0, 60);
+                var file = System.IO.Path.Combine(dir, safe + "_" + Environment.TickCount + ".png");
+
+                using (var fs = new System.IO.FileStream(file, System.IO.FileMode.Create))
+                    await Web.CoreWebView2.CapturePreviewAsync(
+                        CoreWebView2CapturePreviewImageFormat.Png, fs);
+
+                _api?.Notifications?.Add(new NotificationMessage(
+                    "fullreel-shot", "Screenshot saved:\n" + file, NotificationType.Info));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Screenshot capture failed");
+            }
+        }
+
+        // Fullscreen toggle state — tracked explicitly rather than read back from WindowState,
+        // which is unreliable on a borderless window. Remembers the windowed bounds to restore.
+        private bool _isFullscreen;
+        private Rect _windowedBounds;
+
+        // Expand the borderless player to fill the screen and back to windowed. Uses explicit
+        // bounds (not WindowState.Maximized) — a borderless Maximized window can get stuck and
+        // doesn't restore cleanly. Drops Topmost while fullscreen so screenshot tools can capture.
         private void ToggleFullscreen()
         {
             var w = Window.GetWindow(this);
             if (w == null) return;
-            w.WindowState = w.WindowState == WindowState.Maximized
-                ? WindowState.Normal
-                : WindowState.Maximized;
+
+            if (!_isFullscreen)
+            {
+                _windowedBounds = new Rect(w.Left, w.Top, w.Width, w.Height);
+                var screen = System.Windows.SystemParameters.WorkArea; // full monitor minus taskbar
+                w.Left = screen.Left; w.Top = screen.Top;
+                w.Width = screen.Width; w.Height = screen.Height;
+                _isFullscreen = true;
+            }
+            else
+            {
+                w.Left = _windowedBounds.Left; w.Top = _windowedBounds.Top;
+                w.Width = _windowedBounds.Width; w.Height = _windowedBounds.Height;
+                _isFullscreen = false;
+            }
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
