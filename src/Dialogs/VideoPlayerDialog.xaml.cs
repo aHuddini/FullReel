@@ -145,6 +145,9 @@ namespace FullVid.Dialogs
             }
 
             Web.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
+            // Keys captured in-page (see the keydown listener in BuildPlayerHtml) arrive here as
+            // "key:<Key>". This is the reliable keyboard path once focus is inside the WebView2.
+            Web.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
             // Serve our own HTML page from a virtual https host. Navigating straight to
             // youtube.com/embed/... loads it as a top-level page with an opaque origin, which
@@ -328,6 +331,14 @@ namespace FullVid.Dialogs
                 "var d=player.getDuration()||0,c=player.getCurrentTime()||0;" +
                 "var cu=document.getElementById('cur');if(cu)cu.textContent=_fmt(c);" +
                 "var to=document.getElementById('tot');if(to&&d>0)to.textContent=_fmt(d);},500);" +
+                // Capture keys at the document (capture phase) BEFORE the YouTube iframe sees them,
+                // and forward to C# via postMessage. WPF PreviewKeyDown misses keys once focus is
+                // inside the WebView2 HWND, so this is the reliable path — it also stops YouTube's
+                // own keyboard controls from firing. Only our shortcut keys are intercepted.
+                "var _keys={' ':1,'k':1,'K':1,'ArrowLeft':1,'ArrowRight':1,'ArrowUp':1,'ArrowDown':1," +
+                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'Escape':1};" +
+                "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
+                "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
                 "</script></body></html>";
         }
 
@@ -367,6 +378,7 @@ namespace FullVid.Dialogs
                 {
                     Web.CoreWebView2.NavigationCompleted -= OnNavigationCompleted;
                     Web.CoreWebView2.WebResourceRequested -= OnWebResourceRequested;
+                    Web.CoreWebView2.WebMessageReceived -= OnWebMessageReceived;
                 }
                 Web?.Dispose();
             }
@@ -382,6 +394,38 @@ namespace FullVid.Dialogs
         private void OnNavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             _webReady = e.IsSuccess;
+        }
+
+        // Keyboard from inside the page ("key:<Key>"). Maps to the same PlayerAction dispatch as
+        // the controller, so keys work regardless of where WebView2 focus is.
+        private void OnWebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                var msg = e.TryGetWebMessageAsString();
+                if (string.IsNullOrEmpty(msg) || !msg.StartsWith("key:")) return;
+                var key = msg.Substring(4);
+                PlayerAction action;
+                switch (key)
+                {
+                    case " ":
+                    case "k": case "K": action = PlayerAction.PlayPause; break;
+                    case "ArrowRight": action = PlayerAction.SeekForward; break;
+                    case "ArrowLeft":  action = PlayerAction.SeekBackward; break;
+                    case "ArrowUp":    action = PlayerAction.VolumeUp; break;
+                    case "ArrowDown":  action = PlayerAction.VolumeDown; break;
+                    case "d": case "D": action = PlayerAction.Download; break;
+                    case "f": case "F": action = PlayerAction.ToggleFullscreen; break;
+                    case "p": case "P": action = PlayerAction.Screenshot; break;
+                    case "Escape": action = PlayerAction.Close; break;
+                    default: return;
+                }
+                DispatchAction(action, keyboard: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error handling web-message key in VideoPlayerDialog");
+            }
         }
 
         private ControllerEventRouter GetRouter()
