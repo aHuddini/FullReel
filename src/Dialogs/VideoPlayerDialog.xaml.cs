@@ -179,8 +179,8 @@ namespace FullVid.Dialogs
             Web.CoreWebView2.AddWebResourceRequestedFilter(PlayerPageUrl, CoreWebView2WebResourceContext.All);
             Web.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             Web.CoreWebView2.Navigate(PlayerPageUrl);
-            // Keep keyboard focus in the web page — it's the only keyboard path (in-page capture).
-            Web.Focus();
+            // Put keyboard focus in the web page from the start (Win32-level — see FocusWebView).
+            FocusWebView("initial");
         }
 
         // Choose the hint-bar style from settings. FrostedBlur = HTML overlay inside the page
@@ -381,20 +381,35 @@ namespace FullVid.Dialogs
 
         // Re-focus the web view whenever the window becomes active again (alt-tab back, etc.) —
         // deferred so it lands after WPF finishes its own activation focus handling.
-        private void OnWindowActivated(object sender, EventArgs e)
+        // Win32 SetFocus — the ONLY reliable way to restore keyboard to WebView2 after alt-tab.
+        // WPF still thinks the control is focused, so Web.Focus() is a no-op; the SDK only tells
+        // the browser it regained focus from its WM_SETFOCUS handler → MoveFocus(Programmatic).
+        // Confirmed by-design per WebView2Feedback #4626; workaround per #185.
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        // Deferred to ContextIdle — WPF sets its own focus AFTER Activated completes; earlier
+        // priorities get overwritten (#185).
+        private void FocusWebView(string reason)
         {
-            Logger.Info("[KbdDiag] window Activated — refocusing web view");
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 try
                 {
-                    Web?.Focus();
-                    Logger.Info("[KbdDiag] post-refocus: Keyboard.FocusedElement=" +
-                        (System.Windows.Input.Keyboard.FocusedElement?.GetType().Name ?? "null") +
-                        " Web.IsKeyboardFocusWithin=" + (Web?.IsKeyboardFocusWithin ?? false));
+                    if (Web != null && Web.IsVisible && Web.Handle != IntPtr.Zero && Web.CoreWebView2 != null)
+                    {
+                        SetFocus(Web.Handle); // hits the SDK's WM_SETFOCUS → MoveFocus path
+                        Logger.Info("[KbdDiag] SetFocus(Web.Handle) done (" + reason + ")");
+                    }
                 }
-                catch (Exception ex) { Logger.Info("[KbdDiag] refocus threw: " + ex.Message); }
-            }), System.Windows.Threading.DispatcherPriority.Input);
+                catch (Exception ex) { Logger.Info("[KbdDiag] SetFocus threw: " + ex.Message); }
+            }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+        }
+
+        private void OnWindowActivated(object sender, EventArgs e)
+        {
+            Logger.Info("[KbdDiag] window Activated — restoring browser focus");
+            FocusWebView("activated");
         }
 
         // On the hosting window's Closed — the single choke point for every close path.
@@ -641,7 +656,7 @@ namespace FullVid.Dialogs
             }
 
             // Resizing can move focus out of the web page — pull it back so keys keep working.
-            Web?.Focus();
+            FocusWebView("fullscreen-toggle");
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2

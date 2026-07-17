@@ -58,3 +58,10 @@
   - `DialogHelper.PluginPropertyKey = "FullVidPlugin"`, pack URIs `pack://application:,,,/FullVid;component/...` (tied to assembly name).
   - `Constants.ExtensionFolderName = "FullVid"` + `LogFileName = "FullVid.log"` — these are the user-data folder + log path; renaming orphans existing user data.
 - **Rule:** rebrand = display strings + docs + extension.yaml Name/Description only. Keep every code/data identifier as "FullVid". When editing, change quoted user-facing captions, NOT namespaces/Id/Module/pack-URIs/Constants.
+
+## WebView2 (HwndHost) alt-tab keyboard death — by-design, and the ONLY fix (researched, WebView2Feedback #4626/#185)
+- Alt-tab back: WPF keyboard focus never left the WebView2 element → GotKeyboardFocus doesn't refire → SDK never calls MoveFocus → the browser stays "blurred" and swallows keys; WPF gets nothing either (its key events are SYNTHESIZED by the browser's AcceleratorKeyPressed, which needs browser-side focus). Both paths die together.
+- **`Web.Focus()` is a NO-OP here** (element already Keyboard.FocusedElement). Do NOT use it to restore.
+- **Fix: P/Invoke `SetFocus(Web.Handle)` deferred at DispatcherPriority.ContextIdle from Window.Activated** — triggers the SDK's own WM_SETFOCUS → MoveFocus(Programmatic). Deferral required (WPF re-sets focus after Activated). Implemented as FocusWebView() in VideoPlayerDialog.
+- Keys also arrive TWICE when the browser IS focused (in-page capture postMessage + WebView2's WPF re-raise) with the twin up to >120ms late — DispatchKeyboardAction dedupes same-action within 350ms. Idempotent keys mask the bug (Esc "worked"), toggles cancel out (F "did nothing") — that asymmetry is the tell.
+- Fallbacks if ever needed: Keyboard.ClearFocus()+Keyboard.Focus(Web); SetFocus(GetWindow(Handle,GW_CHILD)); WH_KEYBOARD_LL gated on foreground; SDK 1.0.3351+ AllowHostInputProcessing; WebView2CompositionControl routes input through WPF but costs video framerate (GraphicsCapture) + no DRM.
