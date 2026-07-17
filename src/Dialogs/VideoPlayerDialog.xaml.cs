@@ -106,11 +106,11 @@ namespace FullVid.Dialogs
 
             SetupHintBar();
 
-            // Keyboard parity. Wire on the hosting window (tunneling PreviewKeyDown) so keys
-            // are caught before WebView2 focus swallows them.
+            // Keyboard is handled by the in-page keydown capture (BuildPlayerHtml) posting to
+            // OnWebMessageReceived — the ONLY keyboard path. A WPF PreviewKeyDown fallback here
+            // double-fired every shortcut (WebView2's WPF integration re-raises keys), making
+            // toggles like fullscreen cancel themselves out.
             var window = Window.GetWindow(this);
-            if (window != null)
-                window.PreviewKeyDown += OnPreviewKeyDown;
 
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
@@ -157,6 +157,8 @@ namespace FullVid.Dialogs
             Web.CoreWebView2.AddWebResourceRequestedFilter(PlayerPageUrl, CoreWebView2WebResourceContext.All);
             Web.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             Web.CoreWebView2.Navigate(PlayerPageUrl);
+            // Keep keyboard focus in the web page — it's the only keyboard path (in-page capture).
+            Web.Focus();
         }
 
         // Choose the hint-bar style from settings. FrostedBlur = HTML overlay inside the page
@@ -361,7 +363,6 @@ namespace FullVid.Dialogs
             if (sender is Window w)
             {
                 w.Closed -= OnWindowClosed;
-                w.PreviewKeyDown -= OnPreviewKeyDown;
             }
 
             if (_upsPaused)
@@ -451,31 +452,6 @@ namespace FullVid.Dialogs
         }
 
         public void OnControllerButtonReleased(ControllerInput button) { }
-
-        // Keyboard parity with the controller: Space/K=play/pause, Esc=close, Left/Right=seek,
-        // Up/Down=volume, D=download. Routes through the same PlayerAction dispatch. keyboard=true
-        // skips the seek/volume debounce (that gate is for the XInput+WPF double-fire only).
-        private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            PlayerAction action;
-            switch (e.Key)
-            {
-                case System.Windows.Input.Key.Space:
-                case System.Windows.Input.Key.K: action = PlayerAction.PlayPause; break;
-                case System.Windows.Input.Key.Escape: action = PlayerAction.Close; break;
-                case System.Windows.Input.Key.Right: action = PlayerAction.SeekForward; break;
-                case System.Windows.Input.Key.Left: action = PlayerAction.SeekBackward; break;
-                case System.Windows.Input.Key.Up: action = PlayerAction.VolumeUp; break;
-                case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
-                case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
-                case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
-                case System.Windows.Input.Key.P: action = PlayerAction.Screenshot; break;
-                default: return;
-            }
-
-            e.Handled = true;
-            DispatchAction(action, keyboard: true);
-        }
 
         private void DispatchAction(PlayerAction action, bool keyboard)
         {
@@ -574,6 +550,9 @@ namespace FullVid.Dialogs
                 _isFullscreen = false;
                 Script("if(window.fvSetBottomAuto)fvSetBottomAuto(false);"); // windowed: bottom bar stays
             }
+
+            // Resizing can move focus out of the web page — pull it back so keys keep working.
+            Web?.Focus();
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
