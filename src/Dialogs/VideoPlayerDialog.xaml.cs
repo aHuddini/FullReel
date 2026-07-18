@@ -347,8 +347,12 @@ namespace FullVid.Dialogs
                 "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;" +
                 "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
-                // Left cell: live playing-resolution label (fed by the embed script's postMessage).
-                "<span id=\"qual\" style=\"text-align:left;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-left:6px\"></span>" +
+                // Left cell: live playing-resolution pill (fed by the embed script's postMessage).
+                // Hidden while empty via the #qual:empty rule; violet tint matches the key hints.
+                "<span style=\"text-align:left;padding-left:6px\">" +
+                "<span id=\"qual\" style=\"display:inline-block;font:600 11px 'Segoe UI',sans-serif;" +
+                "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4);" +
+                "border-radius:999px;padding:2px 10px;letter-spacing:.3px\"></span></span>" +
                 "<span style=\"text-align:center\">" + legend + "</span>" +
                 "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
                 "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
@@ -363,7 +367,8 @@ namespace FullVid.Dialogs
                 // keeps real video under every edge; the sliver of overflow is cropped.
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}</style>" +
+                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
+                "#qual:empty{display:none !important}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
@@ -443,12 +448,17 @@ namespace FullVid.Dialogs
                 "if(location.pathname.indexOf('/embed')!==0)return;" +
                 "var FORCE=" + (forceHd ? "true" : "false") + ";" +
                 "var tries=0,stalls=0,released=false,lastSeek=0;" +
-                // Pick the best available target: prefer 1080, else 720; null = leave auto.
+                // Preference order: 1080p always first (sharp everywhere, sane bandwidth), then
+                // climb (1440 -> 2160) only when the video has no 1080 rung, 720 as last resort.
+                // No availability data -> ask for 1080 blind. null = leave auto.
                 "function pick(p){try{" +
+                "var pref=['hd1080','hd1440','hd2160','hd720'];" +
+                "var av=null;" +
                 "if(typeof p.getAvailableQualityData==='function'){var d=p.getAvailableQualityData();" +
-                "if(d&&d.length){var av={};for(var i=0;i<d.length;i++)av[d[i].quality]=1;" +
-                "if(av.hd1080)return 'hd1080';if(av.hd720)return 'hd720';return null;}}" +
-                "return 'hd1080';}catch(e){return null;}}" +
+                "if(d&&d.length){av={};for(var i=0;i<d.length;i++)av[d[i].quality]=1;}}" +
+                "if(!av)return 'hd1080';" +
+                "for(var j=0;j<pref.length;j++){if(av[pref[j]])return pref[j];}" +
+                "return null;}catch(e){return null;}}" +
                 "function apply(){try{if(!FORCE||released)return;" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +

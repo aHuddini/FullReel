@@ -244,8 +244,9 @@ namespace FullVid
                 });
 
             // Borderless (no Playnite title bar) — the player draws its own glass top/bottom bars
-            // in-page, so window chrome would just be a mismatched duplicate strip.
-            window = DialogHelper.CreateBorderlessDialog(_api, player, 1280, 760, IsFullscreen);
+            // in-page, so window chrome would just be a mismatched duplicate strip. 1280x720 =
+            // exact 16:9, so the cover-sized video neither letterboxes nor crops/upscales.
+            window = DialogHelper.CreateBorderlessDialog(_api, player, 1280, 720, IsFullscreen);
             DialogHelper.AddFocusReturnHandler(window, _api, "WatchVideo");
             window.ShowDialog();
         }
