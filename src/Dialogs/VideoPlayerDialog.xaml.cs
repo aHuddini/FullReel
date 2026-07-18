@@ -412,7 +412,9 @@ namespace FullVid.Dialogs
                 "window.addEventListener('message',function(e){try{" +
                 "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(new URL(e.origin).hostname))return;" +
                 "var d=e.data;if(!d||typeof d.fvq!=='string'||!/^\\d{3,4}p$/.test(d.fvq))return;" +
-                "var q=document.getElementById('qual');if(q)q.textContent=d.fvq;}catch(x){}});" +
+                "var q=document.getElementById('qual');if(q){q.textContent=d.fvq;" +
+                "if(typeof d.fvd==='string'&&/^\\d{2,4}x\\d{2,4}$/.test(d.fvd))" +
+                "q.title='Decoded: '+d.fvd+' — click to change quality';}}catch(x){}});" +
                 // Click the pill to cycle quality manually. The request goes into the embed
                 // iframe (#p — YT.Player turns the div into the iframe), which clamps it to
                 // what's available; the label snaps back to the REAL decoded resolution on the
@@ -500,7 +502,7 @@ namespace FullVid.Dialogs
                 // Report the ACTUAL decoded resolution to the parent page's bar label.
                 // videoHeight is 0 until metadata loads; 'resize' fires on every adaptive switch.
                 "function report(){try{var h=v.videoHeight||0;if(!h)return;" +
-                "window.parent.postMessage({fvq:h+'p'},'*');}catch(e){}}" +
+                "window.parent.postMessage({fvq:h+'p',fvd:(v.videoWidth||0)+'x'+h},'*');}catch(e){}}" +
                 "v.addEventListener('resize',report);" +
                 "v.addEventListener('loadedmetadata',report);" +
                 "report();setTimeout(report,1500);" +
