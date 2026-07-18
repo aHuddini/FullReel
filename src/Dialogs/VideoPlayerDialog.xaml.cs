@@ -349,8 +349,11 @@ namespace FullVid.Dialogs
                 "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
                 // Left cell: live playing-resolution pill (fed by the embed script's postMessage).
                 // Hidden while empty via the #qual:empty rule; violet tint matches the key hints.
+                // The pill opts back into pointer events (the bar is pointer-events:none) — a
+                // click cycles quality manually: auto -> 720p -> 1080p -> 1440p -> 2160p.
                 "<span style=\"text-align:left;padding-left:6px\">" +
-                "<span id=\"qual\" style=\"display:inline-block;font:600 11px 'Segoe UI',sans-serif;" +
+                "<span id=\"qual\" title=\"Click: change quality\" style=\"display:inline-block;" +
+                "pointer-events:auto;cursor:pointer;font:600 11px 'Segoe UI',sans-serif;" +
                 "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4);" +
                 "border-radius:999px;padding:2px 10px;letter-spacing:.3px\"></span></span>" +
                 "<span style=\"text-align:center\">" + legend + "</span>" +
@@ -410,6 +413,21 @@ namespace FullVid.Dialogs
                 "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(new URL(e.origin).hostname))return;" +
                 "var d=e.data;if(!d||typeof d.fvq!=='string'||!/^\\d{3,4}p$/.test(d.fvq))return;" +
                 "var q=document.getElementById('qual');if(q)q.textContent=d.fvq;}catch(x){}});" +
+                // Click the pill to cycle quality manually. The request goes into the embed
+                // iframe (#p — YT.Player turns the div into the iframe), which clamps it to
+                // what's available; the label snaps back to the REAL decoded resolution on the
+                // next report, so a declined pick is visible immediately.
+                "var _qmodes=['auto','hd720','hd1080','hd1440','hd2160'];" +
+                "var _qlabels={auto:'auto',hd720:'720p',hd1080:'1080p',hd1440:'1440p',hd2160:'2160p'};" +
+                "var _qi=0;" +
+                "document.addEventListener('click',function(e){try{" +
+                "if(!e.target||e.target.id!=='qual')return;" +
+                "_qi=(_qi+1)%_qmodes.length;var m=_qmodes[_qi];" +
+                "var f=document.getElementById('p');" +
+                "if(f&&f.contentWindow)f.contentWindow.postMessage({fvSet:m},'*');" +
+                "var ql=document.getElementById('qual');if(ql)ql.textContent=_qlabels[m];" +
+                "if(window.fvShow)fvShow();" +
+                "}catch(x){}});" +
                 // Progress ticker: update the current / total time labels ~2x/sec.
                 "function _fmt(s){s=Math.max(0,Math.floor(s||0));var m=Math.floor(s/60);" +
                 "var ss=s%60;return m+':'+(ss<10?'0':'')+ss;}" +
@@ -493,6 +511,25 @@ namespace FullVid.Dialogs
                 "v.addEventListener('canplay',apply);" +
                 "apply();setTimeout(apply,2000);" +
                 "}catch(e){}}" +
+                // Manual quality picks from the parent page's pill (click-to-cycle). 'auto'
+                // restores the full adaptive range and stops our forcing; a specific rung is
+                // clamped to the nearest available at-or-below the request. Re-arms the stall
+                // watchdog so a too-ambitious manual pick still degrades gracefully.
+                "window.addEventListener('message',function(e){try{" +
+                "if(e.origin!=='https://fullvid.player')return;" +
+                "var d=e.data;if(!d||typeof d.fvSet!=='string')return;" +
+                "var p=document.getElementById('movie_player');" +
+                "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
+                "stalls=0;" +
+                "if(d.fvSet==='auto'){released=true;p.setPlaybackQualityRange('tiny','highres');return;}" +
+                "var order=['hd2160','hd1440','hd1080','hd720'];" +
+                "var i=order.indexOf(d.fvSet);if(i<0)return;" +
+                "var av=null;" +
+                "if(typeof p.getAvailableQualityData==='function'){var dd=p.getAvailableQualityData();" +
+                "if(dd&&dd.length){av={};for(var k=0;k<dd.length;k++)av[dd[k].quality]=1;}}" +
+                "var q=null;for(;i<order.length;i++){if(!av||av[order[i]]){q=order[i];break;}}" +
+                "if(!q)return;released=false;p.setPlaybackQualityRange(q,q);" +
+                "}catch(x){}});" +
                 "if(document.readyState!=='loading')arm();" +
                 "else document.addEventListener('DOMContentLoaded',arm);" +
                 "}catch(e){}})();";
