@@ -1,52 +1,99 @@
-# FullReel
+# FullReel Playnite Extension
 
-A Playnite extension for finding, watching, and downloading YouTube videos for
-your games — trailers, gameplay, walkthroughs, reviews, and guides — browsed by
-category tab, fullscreen, and fully driven by controller or keyboard.
+![License](https://img.shields.io/badge/license-MIT-green) ![Playnite SDK](https://img.shields.io/badge/Playnite%20SDK-6.16.0-purple) ![Total Downloads](https://img.shields.io/github/downloads/aHuddini/FullReel/total?label=downloads&color=brightgreen) ![Latest Release Downloads](https://img.shields.io/github/downloads/aHuddini/FullReel/latest/total?label=latest%20release&color=blue)
 
-## What it does
+<p align="center">
+  <img src="icon.png" alt="FullReel" width="150">
+</p>
 
-- **Find** — right-click a game, pick **FullReel**, and search YouTube via [yt-dlp](https://github.com/yt-dlp/yt-dlp). Browse results by category tab — trailers, gameplay, walkthroughs, reviews, and guides. The results window opens instantly showing "Searching…" and results stream in as they arrive — no blocking progress dialog. Each result shows a thumbnail, title, duration, channel, and view count.
-- **Watch** — play a result in a fullscreen borderless [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) player that streams directly from YouTube. Autoplays on open, requests hd1080 so 60fps streams play, and uses the smooth direct-render path.
-- **Download** — save a video into the game's ExtraMetadata folder as `VideoTrailer.mp4` (H.264 / AAC), so [ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection) (EML) can play it as the game's trailer.
+<p align="center">
+  <a href="https://ko-fi.com/huddini">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi">
+  </a>
+</p>
+
+A Playnite extension for browsing and watching YouTube videos for your games in a fullscreen, controller-friendly player. Search for trailers, gameplay, walkthroughs, reviews, and guides, watch them without leaving Playnite, and download trailers into the ExtraMetadataLoader folder.
+
+Designed as a complement to [ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection), and built for both Desktop and Fullscreen mode.
+
+Built with the help of Claude Code and Cursor IDE
+
+---
+
+## 🎬 Demo
+
+<img src="docs/assets/DemoFullReel.png" alt="FullReel Demo" width="600">
+
+---
+
+## 🎬 Features
+
+- **Category Search** - Right-click a game and pick **FullReel** to search YouTube, browsed by category tab (trailers, gameplay, walkthroughs, reviews, guides). Results stream in instantly with thumbnails, titles, durations, channel, and view counts.
+- **Fullscreen Player** - A borderless player that streams direct from YouTube. Autoplays on open, requests hd1080 so 60fps streams play, and uses a smooth direct-render path.
+- **Controller and Keyboard** - Both fully drive the player and results list (play/pause, seek, volume, fullscreen, screenshot, download, close), respecting Playnite's Swap Confirm/Cancel setting.
+- **Frosted-Glass UI** - Real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles (FrostedBlur, HeavyFrost, TintedPurple, MinimalGlass, GradientFade, Performance) and a live preview in settings.
+- **Trailer Downloads** - Save a video into the game's ExtraMetadataLoader folder as `VideoTrailer.mp4` (H.264 / AAC), so EML plays it as the game's trailer. Quality and cookies are configurable.
+- **UniPlaySong Integration** - Pauses [UniPlaySong](https://github.com/aHuddini/UniPlaySong)'s music while a video plays and resumes it on close. Does nothing if UniPlaySong isn't installed. On by default.
+- **Tool-Path Validation** - yt-dlp, ffmpeg, and deno path pickers in settings, each validated with a live status readout so a missing tool is caught before it breaks search or download.
+
+---
 
 ## Requirements
 
-- **yt-dlp**, **ffmpeg**, and **deno** — user-installed, needed for Find and Download. Set their paths in settings; each is validated with a live status readout. [deno](https://deno.com) is yt-dlp's JavaScript runtime for YouTube's stream-signature challenges — without it, search and download can fail.
-- **WebView2 Evergreen runtime 132+** — required to watch videos. Preinstalled on most Windows 11 systems; otherwise install Microsoft's Evergreen runtime.
-- **[ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection)** — optional, needed only for the downloaded-trailer playback complement.
+- **yt-dlp**, **ffmpeg**, and **deno**, user-installed and needed for Find and Download. Set their paths in settings; each is validated with a live status. [deno](https://deno.com) is yt-dlp's JavaScript runtime for YouTube's stream-signature challenges, and without it search and download can fail.
+- **WebView2 Evergreen runtime 132+**, required to watch videos. Preinstalled on most Windows 11 systems; otherwise install Microsoft's Evergreen runtime.
+- **[ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection)**, optional and needed only for the downloaded-trailer playback complement.
 
-## How to use
+---
 
-1. Right-click a game → **FullReel**. The results window opens and fills in as videos are found, sorted into category tabs (trailers, gameplay, walkthroughs, reviews, guides).
-2. Navigate the results with the D-pad or arrow keys.
+## How to Use
+
+1. Right-click a game and pick **FullReel**. The results window opens and fills in as videos are found, sorted into category tabs.
+2. Navigate the results with the D-pad or arrow keys, and switch category tabs with LB/RB or Q/E.
 3. On a result:
-   - **A / Enter** — watch it fullscreen.
-   - **Y / D** — download it as the game's trailer.
-   - **B / Esc** — close and return to Playnite.
+   - **A / Enter** to watch it fullscreen
+   - **Y / D** to download it as the game's trailer
+   - **B / Esc** to close and return to Playnite
 
-In the player:
+### Player controls
 
-- **A / Space** — play/pause
-- **◄► / Left-Right** — seek 10s
-- **▲▼ / Up-Down** — volume
-- **Y / D** — download
-- **B / Esc** — close
+| Action | Controller | Keyboard |
+|---|---|---|
+| Play / Pause | A | Space / K |
+| Seek 10s | D-Pad Left/Right | Left / Right |
+| Volume | D-Pad Up/Down | Up / Down |
+| Fullscreen | Select | F |
+| Screenshot | RB | P |
+| Download | Y | D |
+| Close | B | Esc |
 
-Both a controller and the keyboard fully drive the player and the results list, and FullReel respects Playnite's *Swap Confirm/Cancel Buttons* setting. The player's title bar and controls bar are real frosted glass (backdrop-blur over the live video); the title bar auto-hides during playback and reappears on input. Choose from **6 controls-bar styles** in settings (Player → Controls bar) with a live preview: **FrostedBlur** (default), **HeavyFrost**, **TintedPurple**, **MinimalGlass**, **GradientFade**, and **Performance** (a plain strip, lightest on the GPU).
+The player's title bar and controls bar are real frosted glass (backdrop-blur over the live video). The title bar auto-hides during playback and reappears on input. Pick from 6 controls-bar styles in **Settings → Player → Controls bar**, each with a live preview.
 
-## EML trailer note
+---
 
-Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadata folder
-(`{ConfigurationPath}\ExtraMetadata\games\{gameId}\VideoTrailer.mp4`), encoded
-H.264 / yuv420p / AAC so EML plays it untouched. Re-select the game in your
-library so ExtraMetadataLoader picks up the new trailer.
+## EML Trailer Note
 
-## Settings overview
+Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`{ConfigurationPath}\ExtraMetadata\games\{gameId}\VideoTrailer.mp4`), encoded H.264 / yuv420p / AAC so EML plays it untouched. Re-select the game in your library so ExtraMetadataLoader picks up the new trailer.
 
-- **Tool paths** — yt-dlp, ffmpeg, and deno path pickers, each validated (`--version` / `-version`) with a live status message flagging a missing or invalid tool.
-- **Cookies** — browser cookies or a custom cookies file, for age-restricted or region-locked videos.
-- **Download quality** — pick the download quality for saved trailers.
-- **Player → Controls bar** — choose one of the 6 glass styles, with a live preview image.
-- **UniPlaySong integration** — pause [UniPlaySong](https://github.com/aHuddini/UniPlaySong)'s music while a video plays and resume it on close (via the `playnite://uniplaysong/pause|play` URI). No-op if UniPlaySong isn't installed. On by default.
-- **Debug logging** — verbose log for troubleshooting.
+---
+
+## Settings
+
+- **Tool paths**: yt-dlp, ffmpeg, and deno pickers, each validated with a live status message.
+- **Cookies**: browser cookies or a custom cookies file, for age-restricted or region-locked videos.
+- **Download quality**: pick the quality for saved trailers.
+- **Player controls bar**: choose one of the 6 glass styles, with a live preview image.
+- **UniPlaySong integration**: pause UniPlaySong's music while a video plays. On by default.
+- **Debug logging**: verbose log for troubleshooting.
+
+---
+
+## Known Issues
+
+- **Age-restricted videos** can't be played in the embedded player. YouTube blurs their thumbnails in the results and points you to watching them directly on YouTube.
+
+---
+
+## Support
+
+If FullReel is useful to you, consider [buying me a coffee](https://ko-fi.com/huddini).
