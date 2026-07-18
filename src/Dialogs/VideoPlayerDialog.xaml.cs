@@ -229,6 +229,13 @@ namespace FullVid.Dialogs
 
             PerfBar.Visibility = _frosted ? Visibility.Collapsed : Visibility.Visible;
             PerfBarRow.Height = _frosted ? new GridLength(0) : GridLength.Auto;
+
+            // At fractional DPI the WebView2 child HWND rounds ~1px short of the window's bottom
+            // edge, so the in-page bottom bar (fixed;bottom:0 in the PAGE) stops a hairline above
+            // the true window edge. Stretch the control 2px past every edge (the window clips the
+            // overhang) so the page's edges land exactly on the window's. Frosted only — the
+            // Performance strip sits in its own row below and must not be overlapped.
+            Web.Margin = _frosted ? new Thickness(-2) : new Thickness(0);
         }
 
         // Virtual origin for our hosted player page. A real https host name is what makes
