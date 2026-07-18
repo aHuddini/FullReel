@@ -38,14 +38,20 @@
             <RowDefinition Height="*"/>     <!-- Results list -->
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Name="DialogTitle"
-                   Text="FullReel"
-                   FontSize="24"
-                   FontWeight="Bold"
-                   Margin="0,0,0,12"
-                   HorizontalAlignment="Center"
-                   Foreground="White"/>
+        <!-- Branded header: FullReel logo icon + wordmark. -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Margin="0,0,0,12">
+            <Image Source="pack://application:,,,/FullVid;component/Images/FullReelIcon.png"
+                   Width="40" Height="40" Margin="0,0,10,0"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   VerticalAlignment="Center"/>
+            <TextBlock Name="DialogTitle"
+                       Text="FullReel"
+                       FontSize="26"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
 
         <!-- Frosted-glass hint strip: translucent panel, accent keys, top highlight line. -->
         <Border Grid.Row="1"

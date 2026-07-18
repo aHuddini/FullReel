@@ -11,3 +11,4 @@ Packages:
       - '[New Feature] Download a video into the game''s ExtraMetadataLoader folder as VideoTrailer.mp4 (H.264/AAC) so EML plays it as the game''s trailer. Download quality and cookies (browser or custom file) are configurable.'
       - '[New Feature] UniPlaySong integration: pauses UniPlaySong''s music while a video plays and resumes it on close. No-op if UniPlaySong isn''t installed; on by default.'
       - '[Improved] Tool-path validation in settings for yt-dlp, ffmpeg, and deno — each picker validates the binary and shows a live status, so a missing tool is caught before it breaks search or download.'
+      - '[Known Issue] Age-restricted videos can''t be played in the embedded player. Their thumbnails appear blurred in the results, and FullReel recommends watching them directly on YouTube.'

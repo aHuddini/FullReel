@@ -40,5 +40,6 @@
     <!-- Player-bar style preview images (real backdrop-filter renders), shown in settings. -->
     <ItemGroup>
         <Resource Include="Images\StylePreviews\*.png" />
+        <Resource Include="Images\FullReelIcon.png" />
     </ItemGroup>
 </Project>
