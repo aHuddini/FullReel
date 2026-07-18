@@ -448,17 +448,23 @@ namespace FullVid.Dialogs
                 "if(location.pathname.indexOf('/embed')!==0)return;" +
                 "var FORCE=" + (forceHd ? "true" : "false") + ";" +
                 "var tries=0,stalls=0,released=false,lastSeek=0;" +
-                // Preference order: 1080p always first (sharp everywhere, sane bandwidth), then
-                // climb (1440 -> 2160) only when the video has no 1080 rung, 720 as last resort.
-                // No availability data -> ask for 1080 blind. null = leave auto.
+                // Prefer HD matched to the screen when possible, else fall back toward 1080p:
+                // walk the ladder up from 720 remembering the largest AVAILABLE rung, stop at the
+                // first one that covers the physical screen (height x DPR). A 4K monitor gets
+                // hd2160 when the video has it; a video maxing out at 1080 gets hd1080. No
+                // availability data -> the walk stops at the screen-need rung blind. null = auto.
                 "function pick(p){try{" +
-                "var pref=['hd1080','hd1440','hd2160','hd720'];" +
+                "var need=(screen.height||1080)*(window.devicePixelRatio||1);" +
+                "var ladder=['hd720','hd1080','hd1440','hd2160'];" +
+                "var hs={hd720:720,hd1080:1080,hd1440:1440,hd2160:2160};" +
                 "var av=null;" +
                 "if(typeof p.getAvailableQualityData==='function'){var d=p.getAvailableQualityData();" +
                 "if(d&&d.length){av={};for(var i=0;i<d.length;i++)av[d[i].quality]=1;}}" +
-                "if(!av)return 'hd1080';" +
-                "for(var j=0;j<pref.length;j++){if(av[pref[j]])return pref[j];}" +
-                "return null;}catch(e){return null;}}" +
+                "var chosen=null;" +
+                "for(var j=0;j<ladder.length;j++){var q=ladder[j];" +
+                "if(av&&!av[q])continue;" +
+                "chosen=q;if(hs[q]>=need)break;}" +
+                "return chosen;}catch(e){return null;}}" +
                 "function apply(){try{if(!FORCE||released)return;" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
