@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green) ![Playnite SDK](https://img.shields.io/badge/Playnite%20SDK-6.16.0-purple) ![Total Downloads](https://img.shields.io/github/downloads/aHuddini/FullReel/total?label=downloads&color=brightgreen) ![Latest Release Downloads](https://img.shields.io/github/downloads/aHuddini/FullReel/latest/total?label=latest%20release&color=blue)
 
 <p align="center">
-  <img src="icon.png" alt="FullReel" width="150">
+  <img src="docs/assets/FullReelBanner.png" alt="FullReel" width="440">
 </p>
 
 <p align="center">
