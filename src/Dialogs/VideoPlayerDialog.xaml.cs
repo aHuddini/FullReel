@@ -336,7 +336,14 @@ namespace FullVid.Dialogs
 
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
-                "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>" +
+                // #p (the YT iframe) is a centered 16:9 COVER block, not width/height:100%. A
+                // 100% iframe letterboxes the video whenever the window aspect isn't exactly
+                // 16:9 — in fullscreen the black strip lands at the bottom, right under the
+                // glass bar, so its backdrop-filter blurs black and looks broken. Cover sizing
+                // keeps real video under every edge; the sliver of overflow is cropped.
+                "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
+                "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
+                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
