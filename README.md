@@ -22,10 +22,8 @@ Built with the help of Claude Code and Cursor IDE
 
 ## 🎬 Demo
 
-[FullReelDemoVid.webm](https://github.com/user-attachments/assets/619a58f6-834a-4ce1-89b6-9dbd0b7b1d2b)
-
 <p align="center">
-  <img src="docs/assets/DemoFullReel.png" alt="FullReel Demo" width="420">
+  <video src="https://github.com/user-attachments/assets/619a58f6-834a-4ce1-89b6-9dbd0b7b1d2b" width="560" controls></video>
 </p>
 
 ---
