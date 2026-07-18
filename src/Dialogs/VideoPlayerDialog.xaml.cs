@@ -23,7 +23,7 @@ namespace FullVid.Dialogs
         VolumeDown,
         Download,
         ToggleFullscreen,  // Select / F — expand the player to fill the screen and back
-        Screenshot         // RB / P — save a PNG of the current video frame
+        ToggleBottomBar    // RB / P — flip the bottom bar between shown and auto-hiding
     }
 
     // Fullscreen WebView2 YouTube player. Transport is driven entirely from C#
@@ -35,11 +35,6 @@ namespace FullVid.Dialogs
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
 
-        // D-pad debounce: XInput + WPF can both fire for one physical press. 150ms gate
-        // (ported from VideoResultsDialog) drops the duplicate so seek/volume don't repeat.
-        private DateTime _lastDpadTime = DateTime.MinValue;
-        private const int DpadDebounceMs = 150;
-
         private readonly IPlayniteAPI _api;
         private readonly FullVidSettings _settings;
         private readonly UniPlaySongBridge _bridge;
@@ -50,6 +45,16 @@ namespace FullVid.Dialogs
         // Guard so we only Resume() UPS if we actually Paused() it (setting was on).
         private bool _upsPaused;
         private bool _webReady;
+
+        // The YT IFrame player object is created asynchronously (onYouTubeIframeAPIReady). Until
+        // 'ready' arrives, transport scripts (if(window.player){...}) no-op, so a press in that
+        // window would vanish and the player feels dead until the user presses again. We hold the
+        // first such press and replay it once 'ready' fires. See OnWebMessageReceived("ready").
+        private bool _playerReady;
+        private PlayerAction? _pendingAction;
+
+        // Debug trace into FullVid.log (dead-input triage) — null when debug logging is off.
+        private Common.FileLogger _dlog;
 
         // FrostedBlur bar style: the hint bar lives INSIDE the hosted page as an HTML overlay
         // with CSS backdrop-filter — Chromium blurs its own video on the GPU. WPF does nothing.
@@ -71,7 +76,7 @@ namespace FullVid.Dialogs
             if (button == ControllerInput.DPadDown) return PlayerAction.VolumeDown;
             if (button == ControllerInput.Y) return PlayerAction.Download;
             if (button == ControllerInput.Back) return PlayerAction.ToggleFullscreen;
-            if (button == ControllerInput.RightShoulder) return PlayerAction.Screenshot;
+            if (button == ControllerInput.RightShoulder) return PlayerAction.ToggleBottomBar;
 
             return PlayerAction.None;
         }
@@ -103,6 +108,8 @@ namespace FullVid.Dialogs
         private async void OnDialogLoaded(object sender, RoutedEventArgs e)
         {
             GetRouter()?.Register(this);
+            _dlog = (Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid)?.GetFileLogger();
+            _dlog?.Debug("[Player] Loaded, controller registered");
 
             SetupHintBar();
 
@@ -125,7 +132,15 @@ namespace FullVid.Dialogs
                 window.LostKeyboardFocus += (s2, e2) =>
                     Logger.Info("[KbdDiag] window LostKeyboardFocus old=" + (e2.OldFocus?.GetType().Name ?? "null"));
             }
-            Web.GotFocus += (s2, e2) => Logger.Info("[KbdDiag] WebView2 GotFocus");
+            // If the browser grabs focus (mouse click on the video, WebView2 init auto-focus),
+            // yank it straight back to the window — focus inside the WebView2 HWND makes Playnite
+            // drop all controller events (see FocusHost). Nothing in the page needs focus: the
+            // bars are pointer-events:none and all transport is driven from C#.
+            Web.GotFocus += (s2, e2) =>
+            {
+                Logger.Info("[KbdDiag] WebView2 GotFocus — yanking focus back to host");
+                FocusHost("web-got-focus");
+            };
             Web.LostFocus += (s2, e2) => Logger.Info("[KbdDiag] WebView2 LostFocus");
 
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
@@ -182,8 +197,9 @@ namespace FullVid.Dialogs
             Web.CoreWebView2.AddWebResourceRequestedFilter(PlayerPageUrl, CoreWebView2WebResourceContext.All);
             Web.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             Web.CoreWebView2.Navigate(PlayerPageUrl);
-            // Put keyboard focus in the web page from the start (Win32-level — see FocusWebView).
-            FocusWebView("initial");
+            // Keep keyboard focus on the WPF window from the start (see FocusHost — focus inside
+            // the WebView2 HWND kills Playnite's controller event delivery).
+            FocusHost("initial");
         }
 
         // Choose the hint-bar style from settings. FrostedBlur = HTML overlay inside the page
@@ -301,7 +317,7 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#B39DDB\">Select / F</b> Fullscreen" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">RB / P</b> Screenshot" +
+                "<b style=\"color:#B39DDB\">RB / P</b> Bottom bar" +
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
 
@@ -331,7 +347,11 @@ namespace FullVid.Dialogs
                 // embed biases toward 'auto', so 60fps only plays if the video has it + net allows.
                 "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,vq:'hd1080'}," +
                 "    events:{" +
-                "      onReady:function(){try{player.setPlaybackQuality('hd1080');}catch(e){}}," +
+                // Tell C# the YT player object is live. Until this fires, transport scripts
+                // (if(window.player){...}) silently no-op, so early controller/key presses vanish —
+                // C# holds the first press and replays it on 'ready'.
+                "      onReady:function(){try{player.setPlaybackQuality('hd1080');}catch(e){}" +
+                "        try{chrome.webview.postMessage('ready');}catch(e){}}," +
                 // Once the video reaches PLAYING (state 1), reveal the top bar then auto-hide.
                 "      onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
                 "}" +
@@ -384,28 +404,29 @@ namespace FullVid.Dialogs
 
         // Re-focus the web view whenever the window becomes active again (alt-tab back, etc.) —
         // deferred so it lands after WPF finishes its own activation focus handling.
-        // Win32 SetFocus — the ONLY reliable way to restore keyboard to WebView2 after alt-tab.
-        // WPF still thinks the control is focused, so Web.Focus() is a no-op; the SDK only tells
-        // the browser it regained focus from its WM_SETFOCUS handler → MoveFocus(Programmatic).
-        // Confirmed by-design per WebView2Feedback #4626; workaround per #185.
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern IntPtr SetFocus(IntPtr hWnd);
-
-        // Deferred to ContextIdle — WPF sets its own focus AFTER Activated completes; earlier
-        // priorities get overwritten (#185).
-        private void FocusWebView(string reason)
+        // Keyboard focus must live on the WPF window, NEVER inside the WebView2 HWND. The
+        // browser's child HWND belongs to msedgewebview2.exe, so focusing it nulls WPF's
+        // PrimaryKeyboardDevice.ActiveSource — and Playnite's GameController.SendControllerInput
+        // early-returns on that null BEFORE invoking the plugin ButtonChanged event, killing ALL
+        // controller input for the dialog (only a D-pad press revives it, via its simulated
+        // arrow key re-latching WPF's keyboard device). With focus held on the window instead:
+        // controller events keep flowing, and every shortcut arrives via WPF PreviewKeyDown.
+        // Deferred to ContextIdle so we land AFTER WPF/WebView2 finish their own focus moves.
+        private void FocusHost(string reason)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 try
                 {
-                    if (Web != null && Web.IsVisible && Web.Handle != IntPtr.Zero && Web.CoreWebView2 != null)
+                    var w = Window.GetWindow(this);
+                    if (w != null)
                     {
-                        SetFocus(Web.Handle); // hits the SDK's WM_SETFOCUS → MoveFocus path
-                        Logger.Info("[KbdDiag] SetFocus(Web.Handle) done (" + reason + ")");
+                        w.Focus();
+                        System.Windows.Input.Keyboard.Focus(w);
+                        Logger.Info("[KbdDiag] FocusHost done (" + reason + ")");
                     }
                 }
-                catch (Exception ex) { Logger.Info("[KbdDiag] SetFocus threw: " + ex.Message); }
+                catch (Exception ex) { Logger.Info("[KbdDiag] FocusHost threw: " + ex.Message); }
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
@@ -414,13 +435,13 @@ namespace FullVid.Dialogs
 
         private void OnWindowActivated(object sender, EventArgs e)
         {
-            Logger.Info("[KbdDiag] window Activated — restoring browser focus");
+            Logger.Info("[KbdDiag] window Activated — restoring host focus");
             if (_restoreTopmost && sender is Window aw)
             {
                 aw.Topmost = true;
                 _restoreTopmost = false;
             }
-            FocusWebView("activated");
+            FocusHost("activated");
         }
 
         // Alt-tabbing away from a Topmost fullscreen player left it painted over every other
@@ -485,6 +506,22 @@ namespace FullVid.Dialogs
             {
                 var msg = e.TryGetWebMessageAsString();
                 Logger.Info("[KbdDiag] WebMessage: " + (msg ?? "null"));
+                if (msg == "ready")
+                {
+                    _playerReady = true;
+                    _dlog?.Debug($"[Player] YT ready (pending={_pendingAction?.ToString() ?? "none"})");
+                    // The player is live now; make sure the web view actually has keyboard focus
+                    // (initial focus can miss before the content is rendered), then replay any press
+                    // the user made during the init gap so it isn't silently dropped.
+                    FocusHost("player-ready");
+                    if (_pendingAction.HasValue)
+                    {
+                        var pending = _pendingAction.Value;
+                        _pendingAction = null;
+                        DispatchAction(pending);
+                    }
+                    return;
+                }
                 if (string.IsNullOrEmpty(msg) || !msg.StartsWith("key:")) return;
                 var key = msg.Substring(4);
                 PlayerAction action;
@@ -498,7 +535,7 @@ namespace FullVid.Dialogs
                     case "ArrowDown":  action = PlayerAction.VolumeDown; break;
                     case "d": case "D": action = PlayerAction.Download; break;
                     case "f": case "F": action = PlayerAction.ToggleFullscreen; break;
-                    case "p": case "P": action = PlayerAction.Screenshot; break;
+                    case "p": case "P": action = PlayerAction.ToggleBottomBar; break;
                     case "Escape": action = PlayerAction.Close; break;
                     default: return;
                 }
@@ -528,16 +565,19 @@ namespace FullVid.Dialogs
                 case System.Windows.Input.Key.Down: action = PlayerAction.VolumeDown; break;
                 case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
                 case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
-                case System.Windows.Input.Key.P: action = PlayerAction.Screenshot; break;
+                case System.Windows.Input.Key.P: action = PlayerAction.ToggleBottomBar; break;
                 default: return;
             }
             e.Handled = true;
             DispatchKeyboardAction(action);
         }
 
-        // Dedupes the two keyboard paths: one physical press can arrive from both the in-page
-        // capture and WPF PreviewKeyDown within milliseconds. The SAME action inside the window
-        // is treated as that duplicate and dropped; different actions pass through untouched.
+        // Dedupes ALL input paths — one physical press can arrive up to THREE ways within
+        // milliseconds: the SDK controller event, the in-page key capture, and WPF
+        // PreviewKeyDown (Playnite Fullscreen synthesizes arrow keys from D-pad, so a D-pad
+        // press produces a controller event AND a key event). The SAME action inside the
+        // window is treated as that duplicate and dropped; different actions pass untouched.
+        // Gating only pairs of paths (the pre-fix design) let the third path double-fire.
         private PlayerAction _lastKeyAction = PlayerAction.None;
         private DateTime _lastKeyTime = DateTime.MinValue;
         // Wide enough to swallow the slow twin: the WebMessage copy of a key can arrive well
@@ -550,10 +590,14 @@ namespace FullVid.Dialogs
         {
             var now = DateTime.Now;
             if (action == _lastKeyAction && (now - _lastKeyTime).TotalMilliseconds < KeyDedupeMs)
+            {
+                _dlog?.Debug($"[Player] {action} deduped (twin within {KeyDedupeMs}ms)");
                 return;
+            }
             _lastKeyAction = action;
             _lastKeyTime = now;
-            DispatchAction(action, keyboard: true);
+            _dlog?.Debug($"[Player] {action} dispatch (playerReady={_playerReady} webReady={_webReady})");
+            DispatchAction(action);
         }
 
         private ControllerEventRouter GetRouter()
@@ -570,7 +614,9 @@ namespace FullVid.Dialogs
         {
             try
             {
-                DispatchAction(Decide(button, _swapAB), keyboard: false);
+                // Through the SAME dedupe as the key paths — Playnite Fullscreen synthesizes
+                // arrow keys from D-pad, so this press's key twin lands there within ms.
+                DispatchKeyboardAction(Decide(button, _swapAB));
             }
             catch (Exception ex)
             {
@@ -580,8 +626,18 @@ namespace FullVid.Dialogs
 
         public void OnControllerButtonReleased(ControllerInput button) { }
 
-        private void DispatchAction(PlayerAction action, bool keyboard)
+        private void DispatchAction(PlayerAction action)
         {
+            // Player-dependent actions (transport) are no-ops until the YT player object exists.
+            // Hold the most recent one and replay it when 'ready' arrives, so the first press
+            // during the ~1s init gap isn't silently lost. Window-level actions (Close, Fullscreen,
+            // ToggleBottomBar, Download) don't touch window.player, so they always run immediately.
+            if (!_playerReady && ActionNeedsPlayer(action))
+            {
+                _pendingAction = action;
+                return;
+            }
+
             // Any input reveals the auto-hiding top title bar and resets its 3s hide timer.
             Script("if(window.fvShowTop)fvShowTop();");
 
@@ -593,16 +649,16 @@ namespace FullVid.Dialogs
                            "if(s===1){player.pauseVideo();}else{player.playVideo();}}");
                     break;
                 case PlayerAction.SeekForward:
-                    if (keyboard || TryDpad()) Script("if(window.player){player.seekTo(player.getCurrentTime()+10,true);}");
+                    Script("if(window.player){player.seekTo(player.getCurrentTime()+10,true);}");
                     break;
                 case PlayerAction.SeekBackward:
-                    if (keyboard || TryDpad()) Script("if(window.player){player.seekTo(Math.max(0,player.getCurrentTime()-10),true);}");
+                    Script("if(window.player){player.seekTo(Math.max(0,player.getCurrentTime()-10),true);}");
                     break;
                 case PlayerAction.VolumeUp:
-                    if (keyboard || TryDpad()) Script("if(window.player){player.setVolume(Math.min(100,player.getVolume()+10));}");
+                    Script("if(window.player){player.setVolume(Math.min(100,player.getVolume()+10));}");
                     break;
                 case PlayerAction.VolumeDown:
-                    if (keyboard || TryDpad()) Script("if(window.player){player.setVolume(Math.max(0,player.getVolume()-10));}");
+                    Script("if(window.player){player.setVolume(Math.max(0,player.getVolume()-10));}");
                     break;
                 case PlayerAction.Download:
                     // Hand off to the caller's download flow (which closes the player).
@@ -614,37 +670,13 @@ namespace FullVid.Dialogs
                 case PlayerAction.ToggleFullscreen:
                     ToggleFullscreen();
                     break;
-                case PlayerAction.Screenshot:
-                    _ = CaptureScreenshot();
+                case PlayerAction.ToggleBottomBar:
+                    // Flip the bottom bar between always-shown and auto-hiding. Only meaningful
+                    // in fullscreen — windowed keeps the bar shown, and _bottomAuto tracks the
+                    // fullscreen state so restoring windowed doesn't strand a hidden bar.
+                    _bottomAuto = !_bottomAuto;
+                    Script("if(window.fvSetBottomAuto)fvSetBottomAuto(" + (_bottomAuto ? "true" : "false") + ");");
                     break;
-            }
-        }
-
-        // Save a PNG of the current video frame. Uses CoreWebView2.CapturePreviewAsync — it grabs
-        // the actual rendered web content (the video), which a WPF window snapshot can't reach for
-        // the WebView2 HwndHost surface. Lands in the plugin's Screenshots folder.
-        private async System.Threading.Tasks.Task CaptureScreenshot()
-        {
-            try
-            {
-                if (Web?.CoreWebView2 == null) return;
-                var dir = System.IO.Path.Combine(
-                    _api.Paths.ConfigurationPath, "ExtraMetadata", "FullReel", "Screenshots");
-                System.IO.Directory.CreateDirectory(dir);
-                var safe = System.Text.RegularExpressions.Regex.Replace(_video?.Title ?? "video", "[^A-Za-z0-9 _-]", "").Trim();
-                if (safe.Length > 60) safe = safe.Substring(0, 60);
-                var file = System.IO.Path.Combine(dir, safe + "_" + Environment.TickCount + ".png");
-
-                using (var fs = new System.IO.FileStream(file, System.IO.FileMode.Create))
-                    await Web.CoreWebView2.CapturePreviewAsync(
-                        CoreWebView2CapturePreviewImageFormat.Png, fs);
-
-                _api?.Notifications?.Add(new NotificationMessage(
-                    "fullreel-shot", "Screenshot saved:\n" + file, NotificationType.Info));
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Screenshot capture failed");
             }
         }
 
@@ -652,6 +684,12 @@ namespace FullVid.Dialogs
         // which is unreliable on a borderless window. Remembers the windowed bounds to restore.
         private bool _isFullscreen;
         private Rect _windowedBounds;
+
+        // Sticky bottom-bar preference, mirrors the JS fvBottomAuto flag: true = auto-hide,
+        // false = always shown. Once RB/P sets it, it survives fullscreen enter/exit — those
+        // just re-apply the current preference to the page, they don't reset it. Defaults to
+        // true so fullscreen auto-hides on first entry (the original behavior).
+        private bool _bottomAuto = true;
 
         // Expand the borderless player to fill the screen and back to windowed. Uses explicit
         // bounds (not WindowState.Maximized) — a borderless Maximized window can get stuck and
@@ -664,22 +702,38 @@ namespace FullVid.Dialogs
             if (!_isFullscreen)
             {
                 _windowedBounds = new Rect(w.Left, w.Top, w.Width, w.Height);
-                var screen = System.Windows.SystemParameters.WorkArea; // full monitor minus taskbar
-                w.Left = screen.Left; w.Top = screen.Top;
-                w.Width = screen.Width; w.Height = screen.Height;
+                if (_api?.ApplicationInfo?.Mode == ApplicationMode.Fullscreen)
+                {
+                    // Fullscreen theme: no taskbar on screen — take the entire monitor. WorkArea
+                    // would leave a dead strip where the (hidden) taskbar lives.
+                    w.Left = 0; w.Top = 0;
+                    w.Width = System.Windows.SystemParameters.PrimaryScreenWidth;
+                    w.Height = System.Windows.SystemParameters.PrimaryScreenHeight;
+                }
+                else
+                {
+                    // Desktop: stop at the work area so the taskbar stays reachable.
+                    var screen = System.Windows.SystemParameters.WorkArea;
+                    w.Left = screen.Left; w.Top = screen.Top;
+                    w.Width = screen.Width; w.Height = screen.Height;
+                }
                 _isFullscreen = true;
-                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(true);");  // bottom bar auto-hides in fullscreen
+                // Re-apply the current bar preference (don't reset it) so an RB/P choice made
+                // before entering fullscreen is honored here.
+                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(" + (_bottomAuto ? "true" : "false") + ");");
             }
             else
             {
                 w.Left = _windowedBounds.Left; w.Top = _windowedBounds.Top;
                 w.Width = _windowedBounds.Width; w.Height = _windowedBounds.Height;
                 _isFullscreen = false;
-                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(false);"); // windowed: bottom bar stays
+                // Windowed always shows the bar regardless of preference (no auto-hide when the
+                // player isn't filling the screen); the preference itself is left untouched.
+                Script("if(window.fvSetBottomAuto)fvSetBottomAuto(false);");
             }
 
-            // Resizing can move focus out of the web page — pull it back so keys keep working.
-            FocusWebView("fullscreen-toggle");
+            // Resizing can shuffle focus — make sure it stays on the host window.
+            FocusHost("fullscreen-toggle");
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
@@ -690,14 +744,22 @@ namespace FullVid.Dialogs
             _ = Web.CoreWebView2.ExecuteScriptAsync(js);
         }
 
-        // 150ms gate so a D-pad press doesn't seek/volume twice (XInput + WPF).
-        private bool TryDpad()
+        // Transport actions call into window.player; window-chrome actions don't. Only the former
+        // must wait for the player-ready signal (see DispatchAction's hold-and-replay).
+        private static bool ActionNeedsPlayer(PlayerAction action)
         {
-            var now = DateTime.Now;
-            if ((now - _lastDpadTime).TotalMilliseconds < DpadDebounceMs)
-                return false;
-            _lastDpadTime = now;
-            return true;
+            switch (action)
+            {
+                case PlayerAction.PlayPause:
+                case PlayerAction.SeekForward:
+                case PlayerAction.SeekBackward:
+                case PlayerAction.VolumeUp:
+                case PlayerAction.VolumeDown:
+                    return true;
+                default:
+                    return false;
+            }
         }
+
     }
 }

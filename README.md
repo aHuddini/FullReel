@@ -65,7 +65,7 @@ Built with the help of Claude Code and Cursor IDE
 | Seek 10s | D-Pad Left/Right | Left / Right |
 | Volume | D-Pad Up/Down | Up / Down |
 | Fullscreen | Select | F |
-| Screenshot | RB | P |
+| Toggle bottom bar | RB | P |
 | Download | Y | D |
 | Close | B | Esc |
 

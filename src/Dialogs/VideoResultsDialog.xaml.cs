@@ -33,10 +33,15 @@ namespace FullVid.Dialogs
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
 
-        // D-pad debounce: XInput + WPF can both fire for one physical press. 150ms
-        // gate (ported from UniPlaySong's SimpleControllerDialog) drops the duplicate.
-        private DateTime _lastDpadNavigationTime = DateTime.MinValue;
-        private const int DpadDebounceMs = 150;
+        // Cross-source action dedupe: one physical press arrives up to TWICE within ms — the
+        // SDK controller event AND a Playnite-synthesized key event (Fullscreen turns D-pad
+        // into arrow keys, A into Enter). The old gate only throttled the controller path and
+        // let the keyboard twin through untouched, so every D-pad press double-stepped no
+        // matter the debounce value. Now the SAME action from ANY source within the window is
+        // dropped. 250ms also collapses held-key auto-repeat to ~4 rows/sec.
+        private DialogAction _lastAction = DialogAction.None;
+        private DateTime _lastActionTime = DateTime.MinValue;
+        private const int ActionDedupeMs = 250;
 
         private readonly IPlayniteAPI _api;
         private readonly bool _swapAB;
@@ -256,10 +261,19 @@ namespace FullVid.Dialogs
             }
         }
 
-        // Shared action dispatch for both controller and keyboard. keyboard=true skips the
-        // D-pad debounce (that gate only exists for the XInput+WPF double-fire, not keys).
+        // Shared action dispatch for both controller and keyboard — every path funnels through
+        // the same-action dedupe so the controller+synthesized-key twin collapses to one step.
         private void DispatchAction(DialogAction action, bool keyboard)
         {
+            if (action == DialogAction.None)
+                return;
+
+            var now = DateTime.Now;
+            if (action == _lastAction && (now - _lastActionTime).TotalMilliseconds < ActionDedupeMs)
+                return;
+            _lastAction = action;
+            _lastActionTime = now;
+
             switch (action)
             {
                 case DialogAction.Watch:
@@ -272,10 +286,10 @@ namespace FullVid.Dialogs
                     _onClose?.Invoke();
                     break;
                 case DialogAction.NavigateUp:
-                    if (keyboard || TryDpadNavigation()) Navigate(-1);
+                    Navigate(-1);
                     break;
                 case DialogAction.NavigateDown:
-                    if (keyboard || TryDpadNavigation()) Navigate(1);
+                    Navigate(1);
                     break;
                 case DialogAction.PrevCategory:
                     SwitchCategory(_categoryIndex - 1);
@@ -293,16 +307,6 @@ namespace FullVid.Dialogs
             var row = ResultsListBox.SelectedItem as ResultRow;
             if (row?.Source != null)
                 callback?.Invoke(row.Source);
-        }
-
-        // 150ms gate so a D-pad press doesn't navigate twice (XInput + WPF).
-        private bool TryDpadNavigation()
-        {
-            var now = DateTime.Now;
-            if ((now - _lastDpadNavigationTime).TotalMilliseconds < DpadDebounceMs)
-                return false;
-            _lastDpadNavigationTime = now;
-            return true;
         }
 
         private void Navigate(int offset)

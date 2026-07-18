@@ -86,6 +86,9 @@ namespace FullVid.Services.Controller
         public void HandleButtonPressed(ControllerInput button)
         {
             var receiver = ResolvePressReceiver(DateTime.Now);
+            // Per-press trace: proves whether SDK controller events arrive while a dialog is up
+            // (dead-input triage — distinguishes "Playnite never delivered" from "we dropped it").
+            _fileLogger?.Debug($"[ControllerRouter] Press {button} -> {(receiver?.GetType().Name ?? "DROPPED(cooldown/no-receiver)")}");
             if (receiver == null) return;
 
             // Use Input priority so the nested ShowDialog() message pump processes our events.

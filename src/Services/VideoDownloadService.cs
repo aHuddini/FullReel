@@ -98,20 +98,39 @@ namespace FullVid.Services
                     return false;
                 }
 
-                // Step 2: ffmpeg transcode to EML format (even dims + H.264/yuv420p/AAC → EML leaves it untouched).
-                progress?.Report("Converting to trailer format...");
-                var ffArgs = BuildFfmpegArgs(downloaded, tmpMp4);
-                Log("ffmpeg " + ffArgs);
-                var ffOk = await RunProcessAsync(ffmpegPath, ffArgs, null, ct, isYtDlp: false).ConfigureAwait(false);
+                // Create the EML game folder up front — ffmpeg writes tmpMp4 INTO it (tmpMp4 =
+                // emlPath + ".tmp.mp4"), so the folder must exist before the transcode, not after.
+                // A game with no prior ExtraMetadata folder gets one created here.
+                Directory.CreateDirectory(Path.GetDirectoryName(emlPath));
+
+                // Step 2: get the download into EML format. When yt-dlp landed an .mp4 (the
+                // format selector prefers avc1+mp4a, so this is the common case), a container
+                // remux (-c copy) finishes in seconds. Anything else — or a failed remux —
+                // takes the full libx264 re-encode path.
+                var ffOk = false;
+                if (downloaded.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+                {
+                    progress?.Report("Packaging trailer (no re-encode)...");
+                    var remuxArgs = $"-y -i \"{downloaded}\" -c copy -movflags +faststart \"{tmpMp4}\"";
+                    Log("ffmpeg (remux) " + remuxArgs);
+                    ffOk = await RunProcessAsync(ffmpegPath, remuxArgs, progress, ct, isYtDlp: false,
+                        tickerLabel: "Packaging trailer...").ConfigureAwait(false);
+                }
+                if (!ffOk && !ct.IsCancellationRequested)
+                {
+                    var ffArgs = BuildFfmpegArgs(downloaded, tmpMp4);
+                    Log("ffmpeg " + ffArgs);
+                    ffOk = await RunProcessAsync(ffmpegPath, ffArgs, progress, ct, isYtDlp: false,
+                        tickerLabel: "Converting to trailer format...").ConfigureAwait(false);
+                }
                 if (!ffOk || !File.Exists(tmpMp4))
                 {
                     progress?.Report(ct.IsCancellationRequested ? "Download cancelled." : "Conversion failed.");
                     return false;
                 }
 
-                // Step 3: create the EML game folder and atomically move into place.
-                // File.Move won't overwrite on .NET Fx, so delete an existing trailer first.
-                Directory.CreateDirectory(Path.GetDirectoryName(emlPath));
+                // Step 3: atomically move into place. File.Move won't overwrite on .NET Fx, so
+                // delete an existing trailer first.
                 if (File.Exists(emlPath))
                     File.Delete(emlPath);
                 File.Move(tmpMp4, emlPath);
@@ -149,20 +168,25 @@ namespace FullVid.Services
             return $"-f \"{format}\" -o \"{tempBase}.%(ext)s\"{cookies} --no-warnings \"{url}\"";
         }
 
+        // Prefer H.264 (avc1) video + AAC (mp4a) audio within each tier: EML's target format is
+        // H.264/AAC, so an avc1+mp4a download lands as .mp4 and only needs a container remux
+        // (seconds) instead of a full libx264 re-encode (minutes for a 1080p60/4K VP9 pick).
         private static string FormatSelector(VideoQuality q)
         {
             switch (q)
             {
-                case VideoQuality.P1080: return "bv*[height<=1080]+ba/b[height<=1080]";
-                case VideoQuality.P720: return "bv*[height<=720]+ba/b[height<=720]";
-                case VideoQuality.P480: return "bv*[height<=480]+ba/b[height<=480]";
-                default: return "bv*+ba/b";
+                case VideoQuality.P1080: return "bv*[vcodec^=avc1][height<=1080]+ba[acodec^=mp4a]/bv*[height<=1080]+ba/b[height<=1080]";
+                case VideoQuality.P720: return "bv*[vcodec^=avc1][height<=720]+ba[acodec^=mp4a]/bv*[height<=720]+ba/b[height<=720]";
+                case VideoQuality.P480: return "bv*[vcodec^=avc1][height<=480]+ba[acodec^=mp4a]/bv*[height<=480]+ba/b[height<=480]";
+                default: return "bv*[vcodec^=avc1]+ba[acodec^=mp4a]/bv*+ba/b";
             }
         }
 
+        // -preset veryfast: 3-5x faster than the default (medium) for marginal size cost — a
+        // trailer re-encode shouldn't take minutes. Only the fallback path pays this at all.
         private string BuildFfmpegArgs(string input, string output)
         {
-            return $"-y -i \"{input}\" -c:v libx264 -pix_fmt yuv420p -c:a aac -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" \"{output}\"";
+            return $"-y -i \"{input}\" -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" -movflags +faststart \"{output}\"";
         }
 
         // Wires the persisted CookiesSource + CustomCookiesFilePath into yt-dlp args:
@@ -209,8 +233,9 @@ namespace FullVid.Services
 
         // Runs a process, draining stdout+stderr on background tasks (full-pipe deadlock
         // guard). For yt-dlp, parses download-percent lines off stdout into progress.
-        // Kills the process if the token trips. Returns true only on exit code 0.
-        private async Task<bool> RunProcessAsync(string exePath, string args, IProgress<string> progress, CancellationToken ct, bool isYtDlp)
+        // tickerLabel (ffmpeg) reports "{label} {n}s" every ~2s so a long encode never looks
+        // hung. Kills the process if the token trips. Returns true only on exit code 0.
+        private async Task<bool> RunProcessAsync(string exePath, string args, IProgress<string> progress, CancellationToken ct, bool isYtDlp, string tickerLabel = null)
         {
             var psi = new ProcessStartInfo
             {
@@ -252,6 +277,8 @@ namespace FullVid.Services
                 });
                 var readError = Task.Run(() => process.StandardError.ReadToEnd());
 
+                var started = DateTime.Now;
+                var lastTick = started;
                 while (!process.WaitForExit(100))
                 {
                     if (ct.IsCancellationRequested)
@@ -259,6 +286,13 @@ namespace FullVid.Services
                         try { process.Kill(); } catch { }
                         try { readOutput.Wait(1000); readError.Wait(1000); } catch { }
                         return false;
+                    }
+
+                    // Elapsed-seconds heartbeat so a multi-minute encode visibly ticks along.
+                    if (tickerLabel != null && progress != null && (DateTime.Now - lastTick).TotalSeconds >= 2)
+                    {
+                        lastTick = DateTime.Now;
+                        progress.Report($"{tickerLabel} {(int)(lastTick - started).TotalSeconds}s");
                     }
                 }
 
