@@ -347,9 +347,15 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
 
+            // The bar extends 32px BELOW the viewport (bottom:-32px) with the same 32px added as
+            // extra bottom padding, so the visible layout is pixel-identical. Why: backdrop-filter
+            // duplicates edge rows where the kernel runs past the element's boundary, which showed
+            // as a brighter blurred hairline at the bar's bottom edge. Pushing the element's
+            // boundary off-screen moves the clamp artifact out of view ("extend and clip").
+            var botPadExt = style == PlayerBarStyle.GradientFade ? "46px" : "45px";
             var bottomBar = !frostedBar ? "" :
-                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
-                "pointer-events:none;padding:" + botPad + ";box-sizing:border-box;" +
+                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:-32px;z-index:2147483647;" +
+                "pointer-events:none;padding:" + botPad + ";padding-bottom:" + botPadExt + ";box-sizing:border-box;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
                 "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;" +
