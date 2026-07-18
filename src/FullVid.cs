@@ -78,7 +78,7 @@ namespace FullVid
         // Exposes the shared controller-event router for modal dialogs.
         public ControllerEventRouter GetControllerEventRouter() => _controllerRouter;
 
-        // Exposes the file logger so dialogs can drop debug traces into FullVid.log.
+        // Exposes the file logger so dialogs can drop debug traces into FullReel.log.
         public FileLogger GetFileLogger() => _fileLogger;
 
         // Playnite treats the ViewModel as the ISettings object and sets it as the view's DataContext.

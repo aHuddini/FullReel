@@ -49,12 +49,12 @@ namespace FullVid.Services
             // status only when the binary actually ran; anything else means it's missing/invalid.
             if (!_probe.Probe(ytDlpPath, "--version").StartsWith("✓"))
             {
-                progress?.Report("yt-dlp is not configured or invalid. Set its path in FullVid settings.");
+                progress?.Report("yt-dlp is not configured or invalid. Set its path in FullReel settings.");
                 return false;
             }
             if (!_probe.Probe(ffmpegPath, "-version").StartsWith("✓"))
             {
-                progress?.Report("FFmpeg is not configured or invalid. Set its path in FullVid settings.");
+                progress?.Report("FFmpeg is not configured or invalid. Set its path in FullReel settings.");
                 return false;
             }
 
@@ -73,7 +73,7 @@ namespace FullVid.Services
 
             // yt-dlp writes {tempBase}.{ext}; the actual ext is unknown until it runs, so we
             // glob the basename afterwards to resolve the real produced file.
-            var tempBase = Path.Combine(_tempRoot, "fullvid-" + Guid.NewGuid().ToString("N"));
+            var tempBase = Path.Combine(_tempRoot, "fullreel-" + Guid.NewGuid().ToString("N"));
             string downloaded = null;
 
             try

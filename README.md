@@ -93,6 +93,7 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 ## Known Issues
 
 - **Age-restricted videos** can't be played in the embedded player. YouTube blurs their thumbnails in the results and points you to watching them directly on YouTube.
+- **Video quality depends on the source upload.** Some channels upload choppy or low-bitrate videos that look poor even at 1080p, while others (official publisher channels like PlayStation) look excellent at the same resolution. The quality pill shows the true decoded resolution; the rest is the uploader's encode.
 
 ---
 

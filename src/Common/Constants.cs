@@ -5,6 +5,7 @@ namespace FullVid.Common
         public const string ExtensionFolderName = "FullVid";
         public const string PlayniteFolderName = "Playnite";
         public const string PlayniteExtensionsFolderName = "Extensions";
-        public const string LogFileName = "FullVid.log";
+        // User-facing log name (FullReel brand); internal identifiers stay FullVid.
+        public const string LogFileName = "FullReel.log";
     }
 }

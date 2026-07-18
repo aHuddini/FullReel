@@ -59,6 +59,14 @@
 
             <Separator Margin="0,16"/>
 
+            <TextBlock Text="Playback Quality" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <CheckBox Content="Prefer HD playback (recommended)"
+                      IsChecked="{Binding Settings.ForceHdPlayback}"/>
+            <TextBlock Text="Asks YouTube for the best quality your screen can use instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines. Note: the source upload still matters — some channels upload choppy or low-bitrate videos, while others (e.g. official publisher channels) look excellent at the same resolution."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+
+            <Separator Margin="0,16"/>
+
             <TextBlock Text="Player" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <TextBlock Text="Controls bar:" VerticalAlignment="Center" Width="110"/>
@@ -77,11 +85,6 @@
             <CheckBox Content="Auto-hide the bottom bar when the player is fullscreen"
                       IsChecked="{Binding Settings.FullscreenBarAutoHide}" Margin="0,12,0,0"/>
             <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
-
-            <CheckBox Content="Request HD playback (recommended)"
-                      IsChecked="{Binding Settings.ForceHdPlayback}" Margin="0,10,0,0"/>
-            <TextBlock Text="Asks YouTube for 1080p instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines."
                        FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
 
             <Separator Margin="0,16"/>
@@ -120,8 +123,12 @@
 
             <Separator Margin="0,16"/>
 
-            <CheckBox Content="Enable debug logging (FullVid.log)"
-                      IsChecked="{Binding Settings.EnableDebugLogging}"/>
+            <StackPanel Orientation="Horizontal">
+                <CheckBox Content="Enable debug logging (FullReel.log)"
+                          IsChecked="{Binding Settings.EnableDebugLogging}" VerticalAlignment="Center"/>
+                <Button Content="Open Log Folder" Width="120" Margin="16,0,0,0"
+                        Command="{Binding OpenLogFolder}"/>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

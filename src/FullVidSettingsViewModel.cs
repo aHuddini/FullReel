@@ -61,6 +61,18 @@ namespace FullVid
             }
         }
 
+        // Opens the plugin's data folder (where FullReel.log lives) in Explorer.
+        public ICommand OpenLogFolder => new RelayCommand(() =>
+        {
+            try
+            {
+                var dir = plugin.GetPluginUserDataPath();
+                if (!string.IsNullOrEmpty(dir) && System.IO.Directory.Exists(dir))
+                    System.Diagnostics.Process.Start("explorer.exe", dir);
+            }
+            catch { }
+        });
+
         public ICommand BrowseYtDlp => new RelayCommand(() =>
         {
             var path = plugin.PlayniteApi.Dialogs.SelectFile("yt-dlp|yt-dlp.exe|Executable|*.exe");

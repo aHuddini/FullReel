@@ -53,7 +53,7 @@ namespace FullVid.Dialogs
         private bool _playerReady;
         private PlayerAction? _pendingAction;
 
-        // Debug trace into FullVid.log (dead-input triage) — null when debug logging is off.
+        // Debug trace into FullReel.log (dead-input triage) — null when debug logging is off.
         private Common.FileLogger _dlog;
 
         // FrostedBlur bar style: the hint bar lives INSIDE the hosted page as an HTML overlay
@@ -530,7 +530,14 @@ namespace FullVid.Dialogs
                 "setTimeout(function(){try{var vv=document.querySelector('video');" +
                 "if(vv&&vv.videoHeight)window.parent.postMessage(" +
                 "{fvq:vv.videoHeight+'p',fvd:(vv.videoWidth||0)+'x'+vv.videoHeight},'*');}catch(x){}},800);" +
-                "if(d.fvSet==='auto'){released=true;p.setPlaybackQualityRange('tiny','highres');return;}" +
+                // 'auto' = hand control fully back to ABR. Opening the range alone leaves ABR
+                // anchored on the current rung, so ALSO ask for 'auto' explicitly (internal API
+                // accepts it on current builds); every call individually guarded.
+                "if(d.fvSet==='auto'){released=true;" +
+                "try{p.setPlaybackQualityRange('auto','auto');}catch(x){" +
+                "try{p.setPlaybackQualityRange('tiny','highres');}catch(y){}}" +
+                "try{if(typeof p.setPlaybackQuality==='function')p.setPlaybackQuality('auto');}catch(x){}" +
+                "return;}" +
                 "var order=['hd2160','hd1440','hd1080','hd720'];" +
                 "var i=order.indexOf(d.fvSet);if(i<0)return;" +
                 "var av=null;" +
