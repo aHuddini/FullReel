@@ -37,7 +37,9 @@
            using CSS backdrop-filter — Chromium blurs its own video on the GPU. No WPF bar, no
            snapshots, zero WPF-side cost.
          • Performance: plain translucent WPF strip BELOW the video — no blur, no overlay. -->
-    <Grid Background="#212121">
+    <!-- Pure black backing: the WebView2 child HWND can round 1px short of the window edge at
+         fractional DPI, and a #212121 backing showed as a subtle gray line under the video. -->
+    <Grid Background="#000000">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>                        <!-- Player -->
             <RowDefinition x:Name="PerfBarRow" Height="Auto"/>  <!-- Performance strip (collapsed in frosted mode) -->
