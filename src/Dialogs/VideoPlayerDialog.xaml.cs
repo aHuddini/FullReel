@@ -348,13 +348,16 @@ namespace FullVid.Dialogs
                 "transition:transform .35s ease,opacity .35s ease;" +
                 "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
                 // Left cell: live playing-resolution pill (fed by the embed script's postMessage).
-                // Hidden while empty via the #qual:empty rule; violet tint matches the key hints.
-                // The pill opts back into pointer events (the bar is pointer-events:none) — a
-                // click cycles quality manually: auto -> 720p -> 1080p -> 1440p -> 2160p.
+                // Hidden while empty via the #qual:empty rule. Tint follows the bar skin: violet
+                // only on TintedPurple, neutral glass everywhere else. The pill opts back into
+                // pointer events (the bar is pointer-events:none) — a click cycles quality
+                // manually: auto -> 720p -> 1080p -> 1440p -> 2160p.
                 "<span style=\"text-align:left;padding-left:6px\">" +
                 "<span id=\"qual\" title=\"Click: change quality\" style=\"display:inline-block;" +
                 "pointer-events:auto;cursor:pointer;font:600 11px 'Segoe UI',sans-serif;" +
-                "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4);" +
+                (style == PlayerBarStyle.TintedPurple
+                    ? "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4);"
+                    : "color:#EDEDED;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);") +
                 "border-radius:999px;padding:2px 10px;letter-spacing:.3px\"></span></span>" +
                 "<span style=\"text-align:center\">" + legend + "</span>" +
                 "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
