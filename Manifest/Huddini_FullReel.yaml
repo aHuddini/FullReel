@@ -10,9 +10,9 @@ Description: |
 
   Key Features:
   - Right-click a game and pick "FullReel" to search YouTube for its videos, browsed by category tab (trailers, gameplay, walkthroughs, reviews, guides)
-  - Results stream in instantly with thumbnails, titles, durations, channel, and view counts — no blocking progress dialog
+  - Results stream in instantly with thumbnails, titles, durations, channel, and view counts
   - Fullscreen borderless player that streams direct from YouTube, autoplays, and requests hd1080 for 60fps streams
-  - Full controller AND keyboard control (play/pause, seek, volume, fullscreen, screenshot, download, close), respecting Playnite's Swap Confirm/Cancel setting
+  - Full controller AND keyboard control (play/pause, seek, volume, fullscreen, screenshot, download, close)
   - Frosted-glass player UI with 6 selectable controls-bar styles and a live preview in settings
   - Download a video into the game's ExtraMetadataLoader folder as VideoTrailer.mp4 (H.264/AAC) so EML plays it as the game's trailer
   - UniPlaySong integration: pauses your game music while a video plays and resumes it on close (no-op if UniPlaySong isn't installed)
@@ -37,3 +37,10 @@ Tags:
   - 'metadata'
   - 'extrametadataloader'
 IconUrl: 'https://raw.githubusercontent.com/aHuddini/FullReel/main/icon.png'
+Links:
+  GitHub: https://github.com/aHuddini/FullReel
+  Issue Tracker: https://github.com/aHuddini/FullReel/issues
+  Buy me a coffee: https://ko-fi.com/huddini
+Screenshots:
+  - Thumbnail: https://raw.githubusercontent.com/aHuddini/FullReel/main/docs/assets/DemoFullReel.png
+    Image: https://raw.githubusercontent.com/aHuddini/FullReel/main/docs/assets/DemoFullReel.png
