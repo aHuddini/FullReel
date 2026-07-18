@@ -186,22 +186,21 @@ namespace FullVid.Dialogs
                 return;
             }
 
-            // Ask the embed for HD via YouTube's internal player API — the official quality APIs
-            // (setPlaybackQuality / vq / suggestedQuality) have been documented no-ops since 2019,
-            // and the embed's automatic pick trends low. Injected into every child document (the
-            // script gates itself to YouTube embed frames). Registered BEFORE Navigate so the
-            // embed iframe gets it. Fully fail-soft: injection failure, missing internals, or a
-            // starved connection all end in normal adaptive playback (see BuildHdScript).
-            if (_settings?.ForceHdPlayback != false)
+            // Embed-side script: reports the playing resolution to the bar label, and (when the
+            // setting is on) asks for HD via YouTube's internal player API — the official quality
+            // APIs (setPlaybackQuality / vq / suggestedQuality) have been documented no-ops since
+            // 2019, and the embed's automatic pick trends low. Injected into every child document
+            // (the script gates itself to YouTube embed frames); registered BEFORE Navigate so
+            // the embed iframe gets it. Fully fail-soft: injection failure, missing internals, or
+            // a starved connection all end in normal adaptive playback (see BuildEmbedScript).
+            try
             {
-                try
-                {
-                    await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildHdScript());
-                }
-                catch (Exception ex)
-                {
-                    _dlog?.Debug("[Player] HD script injection failed (playing at auto quality): " + ex.Message);
-                }
+                await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+                    BuildEmbedScript(_settings?.ForceHdPlayback != false));
+            }
+            catch (Exception ex)
+            {
+                _dlog?.Debug("[Player] embed script injection failed (auto quality, no label): " + ex.Message);
             }
 
             Web.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
@@ -348,7 +347,8 @@ namespace FullVid.Dialogs
                 "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;" +
                 "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
-                "<span></span>" +
+                // Left cell: live playing-resolution label (fed by the embed script's postMessage).
+                "<span id=\"qual\" style=\"text-align:left;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-left:6px\"></span>" +
                 "<span style=\"text-align:center\">" + legend + "</span>" +
                 "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
                 "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
@@ -398,6 +398,13 @@ namespace FullVid.Dialogs
                 "if(_tb)clearTimeout(_tb);" +
                 "if(fvBottomAuto)_tb=setTimeout(function(){_set('bbar',0,'');},4000);};" +
                 "window.fvShowTop=window.fvShow;" +
+                // Quality label: the embed-side script (BuildEmbedScript) posts {fvq:'1080p'} from
+                // inside the iframe on every adaptive resolution switch; only YouTube frames are
+                // accepted and only the expected string shape is rendered.
+                "window.addEventListener('message',function(e){try{" +
+                "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(new URL(e.origin).hostname))return;" +
+                "var d=e.data;if(!d||typeof d.fvq!=='string'||!/^\\d{3,4}p$/.test(d.fvq))return;" +
+                "var q=document.getElementById('qual');if(q)q.textContent=d.fvq;}catch(x){}});" +
                 // Progress ticker: update the current / total time labels ~2x/sec.
                 "function _fmt(s){s=Math.max(0,Math.floor(s||0));var m=Math.floor(s/60);" +
                 "var ss=s%60;return m+':'+(ss<10?'0':'')+ss;}" +
@@ -417,20 +424,24 @@ namespace FullVid.Dialogs
         }
 
         // Script injected into every child document; runs only inside YouTube embed frames.
-        // Uses the INTERNAL #movie_player element API (setPlaybackQualityRange) — the approach
-        // maintained quality extensions ship today — because the official IFrame quality APIs
-        // are no-ops. Defensive by design, playback always wins over quality:
+        // Two jobs: (1) report the ACTUAL playing resolution (video.videoHeight — standard API,
+        // updates via the 'resize' event on adaptive switches) to the parent page, which shows
+        // it in the bottom bar; (2) when forceHd, request HD via the INTERNAL #movie_player
+        // element API (setPlaybackQualityRange) — the approach maintained quality extensions
+        // ship today — because the official IFrame quality APIs are no-ops. Defensive by
+        // design, playback always wins over quality:
         //   • everything try/caught, every internal call existence-checked → worst case = auto
         //   • bounded polling (~20s max), no infinite loops, never touches playback state
         //   • stall watchdog: 3 genuine buffering stalls (seek-triggered ones filtered) release
         //     the quality lock back to the full adaptive range so the video keeps playing
-        private static string BuildHdScript()
+        private static string BuildEmbedScript(bool forceHd)
         {
             return
                 "(function(){try{" +
                 // Only YouTube embed frames — every other document exits immediately.
                 "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(location.hostname))return;" +
                 "if(location.pathname.indexOf('/embed')!==0)return;" +
+                "var FORCE=" + (forceHd ? "true" : "false") + ";" +
                 "var tries=0,stalls=0,released=false,lastSeek=0;" +
                 // Pick the best available target: prefer 1080, else 720; null = leave auto.
                 "function pick(p){try{" +
@@ -438,7 +449,7 @@ namespace FullVid.Dialogs
                 "if(d&&d.length){var av={};for(var i=0;i<d.length;i++)av[d[i].quality]=1;" +
                 "if(av.hd1080)return 'hd1080';if(av.hd720)return 'hd720';return null;}}" +
                 "return 'hd1080';}catch(e){return null;}}" +
-                "function apply(){try{if(released)return;" +
+                "function apply(){try{if(!FORCE||released)return;" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
                 "var q=pick(p);if(q)p.setPlaybackQualityRange(q,q);}catch(e){}}" +
@@ -451,6 +462,13 @@ namespace FullVid.Dialogs
                 "var v=document.querySelector('video');" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!v||!p){if(++tries<40)setTimeout(arm,500);return;}" +
+                // Report the ACTUAL decoded resolution to the parent page's bar label.
+                // videoHeight is 0 until metadata loads; 'resize' fires on every adaptive switch.
+                "function report(){try{var h=v.videoHeight||0;if(!h)return;" +
+                "window.parent.postMessage({fvq:h+'p'},'*');}catch(e){}}" +
+                "v.addEventListener('resize',report);" +
+                "v.addEventListener('loadedmetadata',report);" +
+                "report();setTimeout(report,1500);" +
                 "v.addEventListener('seeking',function(){lastSeek=Date.now();});" +
                 // 'waiting' = buffering stall — but seeks fire it too, so ignore those.
                 "v.addEventListener('waiting',function(){if(released)return;" +
