@@ -137,6 +137,9 @@ namespace FullVid.Dialogs
                 // WebView2 HWND — and the in-page capture is the only keyboard path, so keys
                 // would be dead. Push focus back into the web view on every (re)activation.
                 window.Activated += OnWindowActivated;
+                // Topmost (Fullscreen sessions) would keep painting over alt-tabbed windows —
+                // drop it while we're not the active window, restore it when we are again.
+                window.Deactivated += OnWindowDeactivated;
             }
 
             // Pause UniPlaySong here (not in the ctor) so pause and the resume-wire above are
@@ -406,10 +409,29 @@ namespace FullVid.Dialogs
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
+        // True when the window was Topmost and we dropped it on deactivation — restore on return.
+        private bool _restoreTopmost;
+
         private void OnWindowActivated(object sender, EventArgs e)
         {
             Logger.Info("[KbdDiag] window Activated — restoring browser focus");
+            if (_restoreTopmost && sender is Window aw)
+            {
+                aw.Topmost = true;
+                _restoreTopmost = false;
+            }
             FocusWebView("activated");
+        }
+
+        // Alt-tabbing away from a Topmost fullscreen player left it painted over every other
+        // window. Drop Topmost while deactivated so other apps are usable; restored on return.
+        private void OnWindowDeactivated(object sender, EventArgs e)
+        {
+            if (sender is Window w && w.Topmost)
+            {
+                w.Topmost = false;
+                _restoreTopmost = true;
+            }
         }
 
         // On the hosting window's Closed — the single choke point for every close path.
@@ -419,6 +441,7 @@ namespace FullVid.Dialogs
             {
                 w.Closed -= OnWindowClosed;
                 w.Activated -= OnWindowActivated;
+                w.Deactivated -= OnWindowDeactivated;
                 w.PreviewKeyDown -= OnPreviewKeyDown;
             }
 
