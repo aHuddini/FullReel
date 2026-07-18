@@ -524,6 +524,12 @@ namespace FullVid.Dialogs
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
                 "stalls=0;manual=true;" +
+                // Authoritative correction: if the clamped pick didn't change the decode (e.g.
+                // 2160 requested on a 1080-max video), no 'resize' fires and the parent's
+                // optimistic label would stick. Report the REAL decode shortly after every pick.
+                "setTimeout(function(){try{var vv=document.querySelector('video');" +
+                "if(vv&&vv.videoHeight)window.parent.postMessage(" +
+                "{fvq:vv.videoHeight+'p',fvd:(vv.videoWidth||0)+'x'+vv.videoHeight},'*');}catch(x){}},800);" +
                 "if(d.fvSet==='auto'){released=true;p.setPlaybackQualityRange('tiny','highres');return;}" +
                 "var order=['hd2160','hd1440','hd1080','hd720'];" +
                 "var i=order.indexOf(d.fvSet);if(i<0)return;" +
