@@ -465,7 +465,8 @@ namespace FullVid.Dialogs
                 "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(location.hostname))return;" +
                 "if(location.pathname.indexOf('/embed')!==0)return;" +
                 "var FORCE=" + (forceHd ? "true" : "false") + ";" +
-                "var tries=0,stalls=0,released=false,lastSeek=0;" +
+                // manual = the user picked a quality via the pill; the auto-forcer stands down.
+                "var tries=0,stalls=0,released=false,lastSeek=0,manual=false;" +
                 // Prefer HD matched to the screen when possible, else fall back toward 1080p:
                 // walk the ladder up from 720 remembering the largest AVAILABLE rung, stop at the
                 // first one that covers the physical screen (height x DPR). A 4K monitor gets
@@ -483,7 +484,7 @@ namespace FullVid.Dialogs
                 "if(av&&!av[q])continue;" +
                 "chosen=q;if(hs[q]>=need)break;}" +
                 "return chosen;}catch(e){return null;}}" +
-                "function apply(){try{if(!FORCE||released)return;" +
+                "function apply(){try{if(!FORCE||released||manual)return;" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
                 "var q=pick(p);if(q)p.setPlaybackQualityRange(q,q);}catch(e){}}" +
@@ -520,7 +521,7 @@ namespace FullVid.Dialogs
                 "var d=e.data;if(!d||typeof d.fvSet!=='string')return;" +
                 "var p=document.getElementById('movie_player');" +
                 "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
-                "stalls=0;" +
+                "stalls=0;manual=true;" +
                 "if(d.fvSet==='auto'){released=true;p.setPlaybackQualityRange('tiny','highres');return;}" +
                 "var order=['hd2160','hd1440','hd1080','hd720'];" +
                 "var i=order.indexOf(d.fvSet);if(i<0)return;" +
