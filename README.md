@@ -22,7 +22,11 @@ Built with the help of Claude Code and Cursor IDE
 
 ## 🎬 Demo
 
-<img src="docs/assets/DemoFullReel.png" alt="FullReel Demo" width="600">
+https://github.com/aHuddini/FullReel/raw/main/docs/assets/FullReelDemoVid.mp4
+
+<p align="center">
+  <img src="docs/assets/DemoFullReel.png" alt="FullReel Demo" width="420">
+</p>
 
 ---
 
