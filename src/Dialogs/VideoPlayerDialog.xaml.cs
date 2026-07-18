@@ -372,8 +372,11 @@ namespace FullVid.Dialogs
                 // glass bar, so its backdrop-filter blurs black and looks broken. Cover sizing
                 // keeps real video under every edge; the sliver of overflow is cropped.
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
+                // +2px oversize: translate(-50%,-50%) centering can land on a half-pixel, leaving
+                // a hairline row at an edge where the bar blurs the page background instead of
+                // video. Overlapping every edge by 1px makes the seam impossible.
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
+                "width:calc(max(100vw,177.7778vh) + 2px);height:calc(max(100vh,56.25vw) + 2px)}" +
                 "#qual:empty{display:none !important}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
