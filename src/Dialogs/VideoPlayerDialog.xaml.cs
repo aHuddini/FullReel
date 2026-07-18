@@ -110,6 +110,8 @@ namespace FullVid.Dialogs
             GetRouter()?.Register(this);
             _dlog = (Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid)?.GetFileLogger();
             _dlog?.Debug("[Player] Loaded, controller registered");
+            // Seed the session's bottom-bar preference from settings (RB/P can flip it live).
+            _bottomAuto = _settings?.FullscreenBarAutoHide ?? false;
 
             SetupHintBar();
 
@@ -693,10 +695,10 @@ namespace FullVid.Dialogs
         private Rect _windowedBounds;
 
         // Sticky bottom-bar preference, mirrors the JS fvBottomAuto flag: true = auto-hide,
-        // false = always shown. Once RB/P sets it, it survives fullscreen enter/exit — those
-        // just re-apply the current preference to the page, they don't reset it. Defaults to
-        // true so fullscreen auto-hides on first entry (the original behavior).
-        private bool _bottomAuto = true;
+        // false = always shown. Seeded from Settings.FullscreenBarAutoHide in OnDialogLoaded;
+        // RB/P flips it live and the choice survives fullscreen enter/exit for the session —
+        // those just re-apply the current preference to the page, they don't reset it.
+        private bool _bottomAuto;
 
         // Expand the borderless player to fill the screen and back to windowed. Uses explicit
         // bounds (not WindowState.Maximized) — a borderless Maximized window can get stuck and

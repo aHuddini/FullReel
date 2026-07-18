@@ -56,6 +56,12 @@ namespace FullVid
         private PlayerBarStyle playerBarStyle = PlayerBarStyle.FrostedBlur;
         public PlayerBarStyle PlayerBarStyle { get => playerBarStyle; set { playerBarStyle = value; OnPropertyChanged(); } }
 
+        // When the player is expanded to fullscreen: false (default) keeps the bottom controls
+        // bar visible; true auto-hides it after a few seconds. RB/P still toggles it live either
+        // way — this only seeds the default.
+        private bool fullscreenBarAutoHide = false;
+        public bool FullscreenBarAutoHide { get => fullscreenBarAutoHide; set { fullscreenBarAutoHide = value; OnPropertyChanged(); } }
+
         private int searchResultCount = 10;
         public int SearchResultCount { get => searchResultCount; set { searchResultCount = value; OnPropertyChanged(); } }
 

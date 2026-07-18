@@ -74,6 +74,11 @@
                 <Image Source="{Binding BarStylePreviewPath}" Width="420" Height="160" Stretch="Fill"/>
             </Border>
 
+            <CheckBox Content="Auto-hide the bottom bar when the player is fullscreen"
+                      IsChecked="{Binding Settings.FullscreenBarAutoHide}" Margin="0,12,0,0"/>
+            <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+
             <Separator Margin="0,16"/>
 
             <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
