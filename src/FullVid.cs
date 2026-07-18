@@ -27,6 +27,33 @@ namespace FullVid
         // add-on's settings/registration off GenericPlugin.Id, so a mismatch hides the settings page.
         public override Guid Id { get; } = Guid.Parse("087df234-b55b-4824-a7a2-3adac1aec1ec");
 
+        // Resolve bundled dependencies (MaterialDesignThemes.Wpf etc.) from the extension's own
+        // folder when normal probing misses — XAML-triggered loads fail on portable Playnite
+        // installs otherwise ("Could not load file or assembly"). Same fix UniPlaySong ships.
+        static FullVid()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                try
+                {
+                    var name = new System.Reflection.AssemblyName(args.Name).Name;
+                    var dir = System.IO.Path.GetDirectoryName(
+                        System.Reflection.Assembly.GetExecutingAssembly().Location);
+                    if (string.IsNullOrEmpty(dir))
+                        return null;
+
+                    var dll = System.IO.Path.Combine(dir, name + ".dll");
+                    if (System.IO.File.Exists(dll))
+                        return System.Reflection.Assembly.LoadFrom(dll);
+                }
+                catch
+                {
+                    // Never let a resolve attempt throw — returning null lets other resolvers try.
+                }
+                return null;
+            };
+        }
+
         public bool IsFullscreen => _api.ApplicationInfo.Mode == ApplicationMode.Fullscreen;
         public bool IsDesktop => _api.ApplicationInfo.Mode == ApplicationMode.Desktop;
 
