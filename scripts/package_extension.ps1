@@ -1,5 +1,6 @@
-# FullVid Extension Packaging Script
+# FullReel Extension Packaging Script
 # Creates a .pext package for Playnite installation.
+# (Internal assembly/module name stays FullVid.dll — only the .pext filename is FullReel.)
 #
 # Usage: .\package_extension.ps1 [-Configuration Release|Debug]
 #
@@ -14,7 +15,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  FullVid Extension Packaging" -ForegroundColor Green
+Write-Host "  FullReel Extension Packaging" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Configuration: $Configuration" -ForegroundColor Yellow
 Write-Host ""
@@ -160,9 +161,9 @@ if (-not (Test-Path $pextOutputDir)) {
     New-Item -ItemType Directory -Path $pextOutputDir -Force | Out-Null
 }
 
-$pextFileName = "FullVid-$version.pext"
+$pextFileName = "FullReel-$version.pext"
 $pextFilePath = Join-Path $pextOutputDir $pextFileName
-$zipFilePath = Join-Path $pextOutputDir "FullVid-$version.zip"
+$zipFilePath = Join-Path $pextOutputDir "FullReel-$version.zip"
 
 if (Test-Path $pextFilePath) { Remove-Item $pextFilePath -Force -ErrorAction SilentlyContinue }
 if (Test-Path $zipFilePath) { Remove-Item $zipFilePath -Force -ErrorAction SilentlyContinue }

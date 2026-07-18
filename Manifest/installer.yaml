@@ -3,7 +3,7 @@ Packages:
   - Version: 1.0.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: 2026-07-16
-    PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.0/FullVid-1_0_0.pext'
+    PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.0/FullReel-1_0_0.pext'
     Changelog:
       - '[New Feature] Right-click a game on Desktop or access the Fullscreen extension menu and pick "FullReel" to search YouTube for its videos — trailers, gameplay, walkthroughs, reviews, and guides, browsed by category tab.'
       - '[New Feature] Watch any video fullscreen in a borderless, minimal player that streams direct from YouTube smoothly with different encoding options. Driven fully by controller AND keyboard (play/pause, seek, volume, download, close).'

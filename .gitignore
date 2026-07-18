@@ -4,3 +4,6 @@ obj/
 .vs/
 pext/
 package/
+
+# Local-only release notes (staged for GitHub release body, not tracked)
+docs/release_notes/
