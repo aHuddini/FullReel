@@ -186,6 +186,24 @@ namespace FullVid.Dialogs
                 return;
             }
 
+            // Ask the embed for HD via YouTube's internal player API — the official quality APIs
+            // (setPlaybackQuality / vq / suggestedQuality) have been documented no-ops since 2019,
+            // and the embed's automatic pick trends low. Injected into every child document (the
+            // script gates itself to YouTube embed frames). Registered BEFORE Navigate so the
+            // embed iframe gets it. Fully fail-soft: injection failure, missing internals, or a
+            // starved connection all end in normal adaptive playback (see BuildHdScript).
+            if (_settings?.ForceHdPlayback != false)
+            {
+                try
+                {
+                    await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BuildHdScript());
+                }
+                catch (Exception ex)
+                {
+                    _dlog?.Debug("[Player] HD script injection failed (playing at auto quality): " + ex.Message);
+                }
+            }
+
             Web.CoreWebView2.NavigationCompleted += OnNavigationCompleted;
             // Keys captured in-page (see the keydown listener in BuildPlayerHtml) arrive here as
             // "key:<Key>". This is the reliable keyboard path once focus is inside the WebView2.
@@ -396,6 +414,54 @@ namespace FullVid.Dialogs
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
                 "</script></body></html>";
+        }
+
+        // Script injected into every child document; runs only inside YouTube embed frames.
+        // Uses the INTERNAL #movie_player element API (setPlaybackQualityRange) — the approach
+        // maintained quality extensions ship today — because the official IFrame quality APIs
+        // are no-ops. Defensive by design, playback always wins over quality:
+        //   • everything try/caught, every internal call existence-checked → worst case = auto
+        //   • bounded polling (~20s max), no infinite loops, never touches playback state
+        //   • stall watchdog: 3 genuine buffering stalls (seek-triggered ones filtered) release
+        //     the quality lock back to the full adaptive range so the video keeps playing
+        private static string BuildHdScript()
+        {
+            return
+                "(function(){try{" +
+                // Only YouTube embed frames — every other document exits immediately.
+                "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(location.hostname))return;" +
+                "if(location.pathname.indexOf('/embed')!==0)return;" +
+                "var tries=0,stalls=0,released=false,lastSeek=0;" +
+                // Pick the best available target: prefer 1080, else 720; null = leave auto.
+                "function pick(p){try{" +
+                "if(typeof p.getAvailableQualityData==='function'){var d=p.getAvailableQualityData();" +
+                "if(d&&d.length){var av={};for(var i=0;i<d.length;i++)av[d[i].quality]=1;" +
+                "if(av.hd1080)return 'hd1080';if(av.hd720)return 'hd720';return null;}}" +
+                "return 'hd1080';}catch(e){return null;}}" +
+                "function apply(){try{if(released)return;" +
+                "var p=document.getElementById('movie_player');" +
+                "if(!p||typeof p.setPlaybackQualityRange!=='function')return;" +
+                "var q=pick(p);if(q)p.setPlaybackQualityRange(q,q);}catch(e){}}" +
+                // Release the lock: restore the full adaptive range so ABR is free again.
+                "function release(){released=true;try{" +
+                "var p=document.getElementById('movie_player');" +
+                "if(p&&typeof p.setPlaybackQualityRange==='function')" +
+                "p.setPlaybackQualityRange('tiny','highres');}catch(e){}}" +
+                "function arm(){try{" +
+                "var v=document.querySelector('video');" +
+                "var p=document.getElementById('movie_player');" +
+                "if(!v||!p){if(++tries<40)setTimeout(arm,500);return;}" +
+                "v.addEventListener('seeking',function(){lastSeek=Date.now();});" +
+                // 'waiting' = buffering stall — but seeks fire it too, so ignore those.
+                "v.addEventListener('waiting',function(){if(released)return;" +
+                "if(Date.now()-lastSeek<2000)return;" +
+                "if(++stalls>=3)release();});" +
+                "v.addEventListener('canplay',apply);" +
+                "apply();setTimeout(apply,2000);" +
+                "}catch(e){}}" +
+                "if(document.readyState!=='loading')arm();" +
+                "else document.addEventListener('DOMContentLoaded',arm);" +
+                "}catch(e){}})();";
         }
 
         // Minimal HTML-entity escape for the video title (untrusted — comes from yt-dlp JSON).

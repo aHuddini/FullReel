@@ -62,6 +62,12 @@ namespace FullVid
         private bool fullscreenBarAutoHide = false;
         public bool FullscreenBarAutoHide { get => fullscreenBarAutoHide; set { fullscreenBarAutoHide = value; OnPropertyChanged(); } }
 
+        // Ask the embed for HD via YouTube's internal player API (the official quality APIs are
+        // dead no-ops). Fully fail-soft — if YouTube changes internals or bandwidth can't keep
+        // up, playback falls back to normal adaptive quality. Kill switch for when it misbehaves.
+        private bool forceHdPlayback = true;
+        public bool ForceHdPlayback { get => forceHdPlayback; set { forceHdPlayback = value; OnPropertyChanged(); } }
+
         private int searchResultCount = 10;
         public int SearchResultCount { get => searchResultCount; set { searchResultCount = value; OnPropertyChanged(); } }
 

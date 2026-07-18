@@ -79,6 +79,11 @@
             <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
                        FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
 
+            <CheckBox Content="Request HD playback (recommended)"
+                      IsChecked="{Binding Settings.ForceHdPlayback}" Margin="0,10,0,0"/>
+            <TextBlock Text="Asks YouTube for 1080p instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines."
+                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+
             <Separator Margin="0,16"/>
 
             <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
