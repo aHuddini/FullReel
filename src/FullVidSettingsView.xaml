@@ -25,129 +25,139 @@
         </ObjectDataProvider>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="20">
-            <TextBlock Text="Download Tools" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
-            <TextBlock Text="FullReel uses yt-dlp to fetch videos and ffmpeg to process them. Point each to its .exe."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,14"/>
+    <TabControl Margin="8" Background="Transparent">
+        <!-- ===================== GENERAL ===================== -->
+        <TabItem Header="General">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20">
+                    <TextBlock Text="Download Tools" FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBlock Text="FullReel uses yt-dlp to fetch videos and ffmpeg to process them. Point each to its .exe."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
-            <!-- yt-dlp -->
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="yt-dlp Path:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.YtDlpPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
-                <Button Content="Browse..." Width="80" Command="{Binding BrowseYtDlp}"/>
-                <TextBlock Text="{Binding YtDlpStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
-            </StackPanel>
+                    <!-- yt-dlp -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="yt-dlp Path:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.YtDlpPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                        <Button Content="Browse..." Width="80" Command="{Binding BrowseYtDlp}"/>
+                        <TextBlock Text="{Binding YtDlpStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
 
-            <!-- ffmpeg -->
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="ffmpeg Path:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.FfmpegPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
-                <Button Content="Browse..." Width="80" Command="{Binding BrowseFfmpeg}"/>
-                <TextBlock Text="{Binding FfmpegStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
-            </StackPanel>
+                    <!-- ffmpeg -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="ffmpeg Path:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.FfmpegPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                        <Button Content="Browse..." Width="80" Command="{Binding BrowseFfmpeg}"/>
+                        <TextBlock Text="{Binding FfmpegStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
 
-            <!-- deno (yt-dlp JS runtime) -->
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="deno Path:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.DenoPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
-                <Button Content="Browse..." Width="80" Command="{Binding BrowseDeno}"/>
-                <TextBlock Text="{Binding DenoStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
-            </StackPanel>
-            <TextBlock Text="deno is yt-dlp's JS runtime — YouTube now needs it to decode video streams. Without it, search and downloads may return nothing."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
+                    <!-- deno (yt-dlp JS runtime) -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="deno Path:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.DenoPath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                        <Button Content="Browse..." Width="80" Command="{Binding BrowseDeno}"/>
+                        <TextBlock Text="{Binding DenoStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <TextBlock Text="deno is yt-dlp's JS runtime — YouTube now needs it to decode video streams. Without it, search and downloads may return nothing."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
 
-            <Separator Margin="0,16"/>
+                    <Separator Margin="0,16"/>
 
-            <TextBlock Text="Playback Quality" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-            <CheckBox Content="Prefer HD playback (recommended)"
-                      IsChecked="{Binding Settings.ForceHdPlayback}"/>
-            <TextBlock Text="Asks YouTube for the best quality your screen can use instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines. Note: the source upload still matters — some channels upload choppy or low-bitrate videos, while others (e.g. official publisher channels) look excellent at the same resolution."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+                    <TextBlock Text="General Settings" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <CheckBox Content="Prefer HD playback (recommended)"
+                              IsChecked="{Binding Settings.ForceHdPlayback}"/>
+                    <TextBlock Text="Asks YouTube for the best quality your screen can use instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines. Note: the source upload still matters — some channels upload choppy or low-bitrate videos, while others (e.g. official publisher channels) look excellent at the same resolution."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+                    <CheckBox Content="Pause UniPlaySong while a trailer plays"
+                              IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,12,0,0"/>
+                    <TextBlock Text="Pauses UniPlaySong's game music while a video plays, and resumes it on close. Does nothing if UniPlaySong isn't installed."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
 
-            <Separator Margin="0,16"/>
+                    <Separator Margin="0,16"/>
 
-            <TextBlock Text="Player" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Controls bar:" VerticalAlignment="Center" Width="110"/>
-                <ComboBox Width="160" SelectedItem="{Binding SelectedBarStyle}"
-                          ItemsSource="{Binding Source={StaticResource PlayerBarStyleValues}}"/>
-            </StackPanel>
-            <TextBlock Text="Frosted-glass looks for the player's controls bar. Preview below updates as you pick. Performance = a plain strip below the video (no glass) — pick it if you ever see stutter."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,8"/>
+                    <TextBlock Text="Player" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Controls bar:" VerticalAlignment="Center" Width="110"/>
+                        <ComboBox Width="160" SelectedItem="{Binding SelectedBarStyle}"
+                                  ItemsSource="{Binding Source={StaticResource PlayerBarStyleValues}}"/>
+                    </StackPanel>
+                    <TextBlock Text="Frosted-glass looks for the player's controls bar. Preview below updates as you pick. Performance = a plain strip below the video (no glass) — pick it if you ever see stutter."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,8"/>
 
-            <!-- Live preview of the selected glass style (real backdrop-filter render). -->
-            <Border Margin="110,4,0,0" Width="420" HorizontalAlignment="Left"
-                    BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
-                <Image Source="{Binding BarStylePreviewPath}" Width="420" Height="160" Stretch="Fill"/>
-            </Border>
+                    <!-- Live preview of the selected glass style (real backdrop-filter render). -->
+                    <Border Margin="110,4,0,0" Width="420" HorizontalAlignment="Left"
+                            BorderBrush="#3C3C3C" BorderThickness="1" CornerRadius="4" SnapsToDevicePixels="True">
+                        <Image Source="{Binding BarStylePreviewPath}" Width="420" Height="160" Stretch="Fill"/>
+                    </Border>
 
-            <CheckBox Content="Auto-hide the bottom bar when the player is fullscreen"
-                      IsChecked="{Binding Settings.FullscreenBarAutoHide}" Margin="0,12,0,0"/>
-            <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
-                       FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+                    <CheckBox Content="Auto-hide the bottom bar when the player is fullscreen"
+                              IsChecked="{Binding Settings.FullscreenBarAutoHide}" Margin="0,12,0,0"/>
+                    <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
 
-            <Separator Margin="0,16"/>
+                    <Separator Margin="0,16"/>
 
-            <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Results to show:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.SearchResultCount}" Width="60"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Query template:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.QueryTemplate}" Width="320"/>
-            </StackPanel>
-            <TextBlock Text="Use {name} as the game-name placeholder." FontSize="11" Foreground="Gray" Margin="110,0,0,0"/>
+                    <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Results to show:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.SearchResultCount}" Width="60"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Query template:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.QueryTemplate}" Width="320"/>
+                    </StackPanel>
+                    <TextBlock Text="Use {name} as the game-name placeholder." FontSize="11" Foreground="Gray" Margin="110,0,0,0"/>
 
-            <Separator Margin="0,16"/>
+                    <Separator Margin="0,16"/>
 
-            <TextBlock Text="Download" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Quality:" VerticalAlignment="Center" Width="110"/>
-                <ComboBox Width="140" SelectedItem="{Binding Settings.DownloadQuality}"
-                          ItemsSource="{Binding Source={StaticResource VideoQualityValues}}"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Cookies source:" VerticalAlignment="Center" Width="110"/>
-                <ComboBox Width="140" SelectedItem="{Binding Settings.CookiesSource}"
-                          ItemsSource="{Binding Source={StaticResource CookieModeValues}}"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,5">
-                <TextBlock Text="Custom cookies file:" VerticalAlignment="Center" Width="110"/>
-                <TextBox Text="{Binding Settings.CustomCookiesFilePath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
-                <Button Content="Browse..." Width="80" Command="{Binding BrowseCookiesFile}"/>
-            </StackPanel>
-            <CheckBox Content="Pause UniPlaySong while a trailer plays"
-                      IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,10,0,0"/>
+                    <TextBlock Text="Download" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Quality:" VerticalAlignment="Center" Width="110"/>
+                        <ComboBox Width="140" SelectedItem="{Binding Settings.DownloadQuality}"
+                                  ItemsSource="{Binding Source={StaticResource VideoQualityValues}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Cookies source:" VerticalAlignment="Center" Width="110"/>
+                        <ComboBox Width="140" SelectedItem="{Binding Settings.CookiesSource}"
+                                  ItemsSource="{Binding Source={StaticResource CookieModeValues}}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBlock Text="Custom cookies file:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.CustomCookiesFilePath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
+                        <Button Content="Browse..." Width="80" Command="{Binding BrowseCookiesFile}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
 
-            <Separator Margin="0,16"/>
+        <!-- ===================== TROUBLESHOOTING ===================== -->
+        <TabItem Header="Troubleshooting">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20">
+                    <TextBlock Text="Search or downloads returning nothing?" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#DDDDDD" FontSize="12" LineHeight="21">
+                        <Run Text="1. All three tools must show a green ✓ on the General tab — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="3. Best practice: put deno.exe in the SAME folder as yt-dlp.exe."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="4. Keep the tools in a simple path (e.g. C:\Tools\), not folders with unusual characters, and off read-only or system-protected locations."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="5. If you downloaded the .exe files with a browser, right-click each → Properties → Unblock."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="6. Still stuck? Tick 'Enable debug logging' below, retry the action, then open the log folder and check FullReel.log for the error."/>
+                    </TextBlock>
 
-            <TextBlock Text="Troubleshooting" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
-            <TextBlock TextWrapping="Wrap" Foreground="#DDDDDD" FontSize="12" LineHeight="19">
-                <Run Text="Search or downloads returning nothing?" FontWeight="SemiBold"/>
-                <LineBreak/>
-                <Run Text="1. All three tools must show a green ✓ above — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
-                <LineBreak/>
-                <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe."/>
-                <LineBreak/>
-                <Run Text="3. Best practice: put deno.exe in the SAME folder as yt-dlp.exe."/>
-                <LineBreak/>
-                <Run Text="4. Keep the tools in a simple path (e.g. C:\Tools\), not folders with unusual characters, and off read-only or system-protected locations."/>
-                <LineBreak/>
-                <Run Text="5. If you downloaded the .exe files with a browser, right-click each → Properties → Unblock."/>
-                <LineBreak/>
-                <Run Text="6. Still stuck? Tick 'Enable debug logging' below, retry, then open the log folder and check FullReel.log for the error."/>
-            </TextBlock>
+                    <Separator Margin="0,18"/>
 
-            <Separator Margin="0,16"/>
-
-            <StackPanel Orientation="Horizontal">
-                <CheckBox Content="Enable debug logging (FullReel.log)"
-                          IsChecked="{Binding Settings.EnableDebugLogging}" VerticalAlignment="Center"/>
-                <Button Content="Open Log Folder" Width="120" Margin="16,0,0,0"
-                        Command="{Binding OpenLogFolder}"/>
-            </StackPanel>
-        </StackPanel>
-    </ScrollViewer>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Content="Enable debug logging (FullReel.log)"
+                                  IsChecked="{Binding Settings.EnableDebugLogging}" VerticalAlignment="Center"/>
+                        <Button Content="Open Log Folder" Width="120" Margin="16,0,0,0"
+                                Command="{Binding OpenLogFolder}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
 </UserControl>
