@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - 2026-07-16
+## [1.0.0] - 2026-07-19
 
 Initial public release.
 
@@ -13,6 +13,28 @@ Initial public release.
 - **Download** — yt-dlp best video+audio → ffmpeg transcode → lands as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`{ConfigurationPath}\ExtraMetadata\games\{gameId}\VideoTrailer.mp4`), encoded H.264 / yuv420p / AAC so ExtraMetadataLoader plays it untouched. Re-select the game so EML picks it up. Download quality and cookies (browser or custom file) are configurable.
 - **UniPlaySong integration** — pauses UniPlaySong's music while a video plays and resumes it on close, via the `playnite://uniplaysong/pause|play` URI. No-op when UniPlaySong is absent. Opt-in, default on.
 - **Tool-path validation** — yt-dlp, ffmpeg, and deno path pickers in settings, each validated (`--version` / `-version`) with a live status readout. deno is yt-dlp's JS runtime for YouTube's stream-signature challenges; without it, search and download can fail.
+- **Live quality pill** — bottom-bar pill shows the true decoded resolution (`video.videoHeight`), not a hinted label. Click it, or press LB/Q, to cycle quality (auto → 720 → 1080 → 1440 → 2160); a declined pick snaps back to the real resolution. HD is requested via YouTube's internal `#movie_player` API (the official IFrame quality APIs are 2019 no-ops); fully fail-soft — a starved connection or missing internals falls back to normal adaptive playback. Kill switch: **Force HD playback** (default on).
+- **Tabbed settings** — General and Troubleshooting tabs. Troubleshooting carries a step-by-step guide (all three tools must validate; use the Windows `.exe` builds; keep deno alongside yt-dlp; unblock downloaded exes; set Cookies to None when downloads fail) and lists known-good tool versions.
+- **Open Log Folder** button in settings; debug logging (`FullReel.log`) is gated on the setting.
+
+### Fixed
+
+- **Controller input dead until a D-pad press** — focus landing inside the WebView2 HWND nulled WPF's `PrimaryKeyboardDevice.ActiveSource`, which made Playnite drop every plugin controller event. Keyboard focus is now held on the host window and re-asserted on activation, so controller and keyboard input flow from the first frame.
+- **Keys captured in-page** — shortcuts are intercepted at the document (capture phase) and forwarded to C#, so they work even when focus is inside the WebView2 and YouTube's own keyboard controls never fire.
+- **Controls bar vanishing over solid-black video** — a WebView2 DirectComposition quirk ([#5574](https://github.com/MicrosoftEdge/WebView2Feedback/issues/5574)) skips the page surface when the video overlay exactly matches the window. Worked around with a symmetric 4px video inset (setting **Keep the controls bar visible over black video**, default on). The crop is even and imperceptible on normal video.
+- **Cursor tooltip over the video** — a transparent shield layer swallows mouse events before the YouTube embed sees them, so its hover UI never appears in windowed or fullscreen playback (the player is controller/keyboard driven).
+- **No game-launch on player exit** — returning focus to the main window on close no longer re-fires the selected game tile in Fullscreen mode.
+- **Live captions forced on** — captions/CC modules are unloaded on ready, on play, and via delayed retries, since YouTube re-inits them asynchronously.
+- **Trailer replace-over-existing** — a download replacing a trailer that ExtraMetadataLoader holds open now retries with backoff instead of failing on the file lock.
+- **Portable Playnite** — bundled assemblies resolve from the extension folder, so the plugin loads on portable installs.
+- **Fullscreen letterbox under the glass bar** — 16:9 cover sizing fills the window and crops the overflow, so no letterbox shows behind the controls.
+- **Bottom bar 1px shift on play** — fixed content-row height reserves space for the quality pill and ticking time, so nothing appearing after load nudges the bar.
+
+### Performance
+
+- **Cached WebView2 environment** — one `CoreWebView2Environment` is reused across player opens instead of created fresh each time (the heaviest open step), so the second and later opens reach first frame faster.
+- **Idle progress ticker** — the 500ms time-label update skips its DOM work while the bottom bar is hidden (fullscreen auto-hide).
+- **Persistent-mixer-free glass** — the controls bar is in-page CSS `backdrop-filter`, blurred on the GPU by Chromium with no WPF overlay; the top bar auto-hides so its blur stops compositing during playback. A **Performance** bar style (plain strip, no blur) is available as the lightest option.
 
 ### Requirements
 

@@ -2,7 +2,7 @@ AddonId: 'FullVid.087df234-b55b-4824-a7a2-3adac1aec1ec'
 Packages:
   - Version: 1.0.0
     RequiredApiVersion: 6.16.0
-    ReleaseDate: 2026-07-16
+    ReleaseDate: 2026-07-19
     PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.0/FullReel-1_0_0.pext'
     Changelog:
       - '[New Feature] Right-click a game on Desktop or access the Fullscreen extension menu and pick "FullReel" to search YouTube for its videos — trailers, gameplay, walkthroughs, reviews, and guides, browsed by category tab.'
