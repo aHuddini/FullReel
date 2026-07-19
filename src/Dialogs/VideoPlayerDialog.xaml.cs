@@ -124,26 +124,11 @@ namespace FullVid.Dialogs
             if (window != null)
                 window.PreviewKeyDown += OnPreviewKeyDown;
 
-            // TEMP [KbdDiag]: trace every input/focus layer so we can see exactly which one dies
-            // after alt-tab. Remove once the focus issue is settled.
-            if (window != null)
-            {
-                window.Deactivated += (s2, e2) => Logger.Info("[KbdDiag] window Deactivated");
-                window.GotKeyboardFocus += (s2, e2) =>
-                    Logger.Info("[KbdDiag] window GotKeyboardFocus new=" + (e2.NewFocus?.GetType().Name ?? "null"));
-                window.LostKeyboardFocus += (s2, e2) =>
-                    Logger.Info("[KbdDiag] window LostKeyboardFocus old=" + (e2.OldFocus?.GetType().Name ?? "null"));
-            }
             // If the browser grabs focus (mouse click on the video, WebView2 init auto-focus),
             // yank it straight back to the window — focus inside the WebView2 HWND makes Playnite
             // drop all controller events (see FocusHost). Nothing in the page needs focus: the
             // bars are pointer-events:none and all transport is driven from C#.
-            Web.GotFocus += (s2, e2) =>
-            {
-                Logger.Info("[KbdDiag] WebView2 GotFocus — yanking focus back to host");
-                FocusHost("web-got-focus");
-            };
-            Web.LostFocus += (s2, e2) => Logger.Info("[KbdDiag] WebView2 LostFocus");
+            Web.GotFocus += (s2, e2) => FocusHost("web-got-focus");
 
             // Resume UPS on EVERY close path (B, window X, error, playback-ended) — wired to
             // the hosting window's Closed, not the B handler, so UPS is never left paused.
@@ -171,15 +156,7 @@ namespace FullVid.Dialogs
             {
                 // --autoplay-policy=no-user-gesture-required so the picked video starts on load
                 // instead of waiting for an A/Space press (WebView2 blocks autoplay by default).
-                // DIAG: --disable-direct-composition-video-overlays — the video normally scans
-                // out through a DirectComposition hardware overlay whose color pipeline differs
-                // from regular composition (crbug 40900941); the boundary row showed as a subtle
-                // bright seam at the bar's bottom edge that no page/WPF/DWM change touched and
-                // that CapturePreviewAsync couldn't capture (single-pipeline). Forcing the video
-                // through the normal compositor removes the boundary. If confirmed, decide
-                // whether to keep (slightly higher GPU cost) or gate behind a setting.
-                var options = new CoreWebView2EnvironmentOptions(
-                    "--autoplay-policy=no-user-gesture-required --disable-direct-composition-video-overlays");
+                var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
                 var env = await CoreWebView2Environment.CreateAsync(null, null, options);
                 await Web.EnsureCoreWebView2Async(env);
             }
@@ -237,6 +214,7 @@ namespace FullVid.Dialogs
 
             PerfBar.Visibility = _frosted ? Visibility.Collapsed : Visibility.Visible;
             PerfBarRow.Height = _frosted ? new GridLength(0) : GridLength.Auto;
+
         }
 
         // Virtual origin for our hosted player page. A real https host name is what makes
@@ -300,13 +278,51 @@ namespace FullVid.Dialogs
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
             GetBarSkin(style, out var topBg, out var botBg, out var blur, out var topBorder, out var botBorder);
-            var blurCss = "backdrop-filter:blur(" + blur + "px) saturate(1.2);-webkit-backdrop-filter:blur(" + blur + "px) saturate(1.2);";
-            // GradientFade reads better with taller bars so the fade has room.
+            // GradientFade reads better with taller bars so the gradient has room to fade.
             var topPad = style == PlayerBarStyle.GradientFade ? "18px 18px 30px" : "12px 18px";
             var botPad = style == PlayerBarStyle.GradientFade ? "30px 8px 14px" : "13px 8px";
+            // Pill accent: violet on the TintedPurple skin, neutral glass on the rest.
+            var pillCss = style == PlayerBarStyle.TintedPurple
+                ? "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4)"
+                : "color:#EDEDED;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25)";
 
-            // Brand mark: the FullReel reel + play-triangle hub (TV/controller omitted), inline
-            // SVG so it stays crisp at bar size. Violet→pink gradient matches the branding.
+            // Single <style> block with classes, not inline styles — both bars share .fvbar so
+            // the glass (tint + blur + border) is identical on each; only the edge border and
+            // background differ per bar/skin. Both bars carry glass DIRECTLY on the element (no
+            // ::before) — a ::before glass layer once caused a bottom-edge seam because the
+            // pseudo-element's edge didn't align with the parent's in the live compositor.
+            var css =
+                "html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
+                // #p (the YT iframe) is a centered 16:9 COVER block, not width/height:100%: a 100%
+                // iframe letterboxes the video whenever the window aspect isn't exactly 16:9 — the
+                // black strip lands under the bottom bar where its blur looks broken. Cover sizing
+                // keeps real video under every edge; the overflow sliver is cropped.
+                "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
+                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
+                // Shared bar glass. pointer-events:none = display-only; all input stays in C#.
+                ".fvbar{position:fixed;left:0;right:0;z-index:2147483647;pointer-events:none;" +
+                "box-sizing:border-box;color:#F5F5F5;" +
+                "backdrop-filter:blur(" + blur + "px) saturate(1.2);" +
+                "-webkit-backdrop-filter:blur(" + blur + "px) saturate(1.2);" +
+                "transition:transform .35s ease,opacity .35s ease}" +
+                ".fvbar-top{top:0;padding:" + topPad + ";font:600 16px 'Segoe UI',sans-serif;color:#FFF;" +
+                "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
+                "background:" + topBg + ";border-bottom:" + topBorder + "}" +
+                ".fvbar-bottom{bottom:0;padding:" + botPad + ";font:14px 'Segoe UI',sans-serif;" +
+                "background:" + botBg + ";border-top:" + botBorder + ";" +
+                "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px}" +
+                ".fvleft{text-align:left;padding-left:6px}" +
+                ".fvpill{display:inline-block;pointer-events:auto;cursor:pointer;" +
+                "font:600 11px 'Segoe UI',sans-serif;border-radius:999px;padding:2px 10px;" +
+                "letter-spacing:.3px;" + pillCss + "}" +
+                "#qual:empty{display:none !important}" +
+                ".fvlegend{text-align:center}" +
+                ".fvsep{color:rgba(255,255,255,.4)}" +
+                ".fvkey{color:#B39DDB}.fvkey-close{color:#EF9A9A}" +
+                ".fvtime{text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px}";
+
+            // Brand mark: the FullReel reel + play-triangle hub, inline SVG so it stays crisp at
+            // bar size. Violet→pink gradient matches the branding.
             const string brandMark =
                 "<svg width='26' height='26' viewBox='0 0 120 120' style='vertical-align:-7px;margin-right:10px'>" +
                 "<defs><linearGradient id='fvlg' x1='0' y1='0' x2='1' y2='1'>" +
@@ -319,88 +335,32 @@ namespace FullVid.Dialogs
                 "<circle cx='31' cy='50' r='9' fill='url(#fvlg)' fill-opacity='.6'/>" +
                 "<path d='M 50 45 L 76 60 L 50 75 Z' fill='#F5F5F5'/></svg>";
 
-            // Both bars are pointer-events:none — display-only; all input stays in C#. The top bar
-            // auto-hides during playback and reappears on any input (fvShowTop() JS + C# poke).
             var topBar = !frostedBar ? "" :
-                "<div id=\"tbar\" style=\"position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
-                "pointer-events:none;padding:" + topPad + ";box-sizing:border-box;" +
-                "font:600 16px 'Segoe UI',sans-serif;color:#FFFFFF;" +
-                "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" +
-                "background:" + topBg + ";border-bottom:" + topBorder + ";" + blurCss +
-                "transition:transform .35s ease,opacity .35s ease;\">" +
-                brandMark + HtmlEscape(title) +
-                "</div>";
+                "<div id=\"tbar\" class=\"fvbar fvbar-top\">" + brandMark + HtmlEscape(title) + "</div>";
 
-            // Legend + inline time on ONE row: controls centered, "current / total" subtly at the
-            // far right. Grid keeps the legend truly centered regardless of the time width.
+            // Legend: controls centered, "current / total" at the far right; grid keeps the
+            // legend truly centered regardless of the time width.
+            const string sep = "<span class=\"fvsep\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>";
             const string legend =
-                "<b style=\"color:#B39DDB\">A / Space</b> Play/Pause" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">◄ ►</b> Seek 10s" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">▲ ▼</b> Volume" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">Y / D</b> Download" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">Select / F</b> Fullscreen" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#B39DDB\">RB / P</b> Bottom bar" +
-                "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
-                "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
+                "<b class=\"fvkey\">A / Space</b> Play/Pause" + sep +
+                "<b class=\"fvkey\">◄ ►</b> Seek 10s" + sep +
+                "<b class=\"fvkey\">▲ ▼</b> Volume" + sep +
+                "<b class=\"fvkey\">Y / D</b> Download" + sep +
+                "<b class=\"fvkey\">Select / F</b> Fullscreen" + sep +
+                "<b class=\"fvkey\">RB / P</b> Bottom bar" + sep +
+                "<b class=\"fvkey-close\">B / Esc</b> Close";
 
             var bottomBar = !frostedBar ? "" :
-                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
-                "pointer-events:none;padding:" + botPad + ";box-sizing:border-box;" +
-                "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
-                // Glass (tint+blur) lives on #bbar::before — see the stylesheet comment.
-                "border-top:" + botBorder + ";" +
-                "transition:transform .35s ease,opacity .35s ease;" +
-                "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
-                // Left cell: live playing-resolution pill (fed by the embed script's postMessage).
-                // Hidden while empty via the #qual:empty rule. Tint follows the bar skin: violet
-                // only on TintedPurple, neutral glass everywhere else. The pill opts back into
-                // pointer events (the bar is pointer-events:none) — a click cycles quality
-                // manually: auto -> 720p -> 1080p -> 1440p -> 2160p.
-                "<span style=\"text-align:left;padding-left:6px\">" +
-                "<span id=\"qual\" title=\"Click: change quality\" style=\"display:inline-block;" +
-                "pointer-events:auto;cursor:pointer;font:600 11px 'Segoe UI',sans-serif;" +
-                (style == PlayerBarStyle.TintedPurple
-                    ? "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4);"
-                    : "color:#EDEDED;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);") +
-                "border-radius:999px;padding:2px 10px;letter-spacing:.3px\"></span></span>" +
-                "<span style=\"text-align:center\">" + legend + "</span>" +
-                "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
-                "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
+                "<div id=\"bbar\" class=\"fvbar fvbar-bottom\">" +
+                // Pill: live playing-resolution label; click cycles quality auto→720→…→2160.
+                "<span class=\"fvleft\"><span id=\"qual\" class=\"fvpill\" title=\"Click: change quality\"></span></span>" +
+                "<span class=\"fvlegend\">" + legend + "</span>" +
+                "<span class=\"fvtime\"><span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
                 "</div>";
 
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
-                // #p (the YT iframe) is a centered 16:9 COVER block, not width/height:100%. A
-                // 100% iframe letterboxes the video whenever the window aspect isn't exactly
-                // 16:9 — in fullscreen the black strip lands at the bottom, right under the
-                // glass bar, so its backdrop-filter blurs black and looks broken. Cover sizing
-                // keeps real video under every edge; the sliver of overflow is cropped.
-                "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-                "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
-                "#qual:empty{display:none !important}" +
-                // The bottom bar's glass lives on a ::before layer, NOT the bar element:
-                // Chromium rasterizes the blurred backdrop and the element's background tint as
-                // SEPARATE layers, and at fractional display scaling they can snap to device
-                // pixels one row apart at the viewport edge — the last row showed blur without
-                // tint (a brighter hairline). Tint+blur on ONE layer can't diverge, and the
-                // -2px bottom overshoot pushes the edge-snap row off-screen. The show/hide
-                // transform stays on #bbar itself, off the filtered layer (crbug 1194050).
-                // Layered background: a bottom scrim (transparent until the last 10px, darkening
-                // to near-opaque at the edge) stacked over the skin tint. The live window's
-                // composition shows a measured ~5.5 CSS px band at the bottom where the bar's
-                // tint doesn't fully land (sub-pixel pipeline mismatch, unreproducible outside
-                // the real WebView2 window); the scrim covers the full band and reads as
-                // intentional edge weighting, like YouTube's own player scrim.
-                "#bbar::before{content:'';position:absolute;left:0;right:0;top:0;bottom:-2px;" +
-                "z-index:-1;background:" +
-                "linear-gradient(to bottom,rgba(0,0,0,0) calc(100% - 10px),rgba(8,8,10,.92))," +
-                botBg + ";" + blurCss + "}</style>" +
+                "<style>" + css + "</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
@@ -470,16 +430,8 @@ namespace FullVid.Dialogs
                 // and forward to C# via postMessage. WPF PreviewKeyDown misses keys once focus is
                 // inside the WebView2 HWND, so this is the reliable path — it also stops YouTube's
                 // own keyboard controls from firing. Only our shortcut keys are intercepted.
-                // Diagnostic: toggles the bottom bar's backdrop-filter live (debug logging only —
-                // C# gates the key). Seam A/B: if the edge line vanishes with the blur off, the
-                // blur is implicated; if it stays, the blur is innocent.
-                "window.fvToggleBlur=function(){var s=document.getElementById('dbgblur');" +
-                "if(s){s.remove();return 'blur ON';}" +
-                "s=document.createElement('style');s.id='dbgblur';" +
-                "s.textContent='#bbar::before{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}';" +
-                "document.head.appendChild(s);return 'blur OFF';};" +
                 "var _keys={' ':1,'k':1,'K':1,'ArrowLeft':1,'ArrowRight':1,'ArrowUp':1,'ArrowDown':1," +
-                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'b':1,'B':1,'Escape':1};" +
+                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'Escape':1};" +
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
                 "</script></body></html>";
@@ -622,10 +574,9 @@ namespace FullVid.Dialogs
                     {
                         w.Focus();
                         System.Windows.Input.Keyboard.Focus(w);
-                        Logger.Info("[KbdDiag] FocusHost done (" + reason + ")");
                     }
                 }
-                catch (Exception ex) { Logger.Info("[KbdDiag] FocusHost threw: " + ex.Message); }
+                catch { }
             }), System.Windows.Threading.DispatcherPriority.ContextIdle);
         }
 
@@ -634,7 +585,6 @@ namespace FullVid.Dialogs
 
         private void OnWindowActivated(object sender, EventArgs e)
         {
-            Logger.Info("[KbdDiag] window Activated — restoring host focus");
             if (_restoreTopmost && sender is Window aw)
             {
                 aw.Topmost = true;
@@ -704,7 +654,6 @@ namespace FullVid.Dialogs
             try
             {
                 var msg = e.TryGetWebMessageAsString();
-                Logger.Info("[KbdDiag] WebMessage: " + (msg ?? "null"));
                 if (msg == "ready")
                 {
                     _playerReady = true;
@@ -713,14 +662,6 @@ namespace FullVid.Dialogs
                     // (initial focus can miss before the content is rendered), then replay any press
                     // the user made during the init gap so it isn't silently dropped.
                     FocusHost("player-ready");
-                    // Diagnostic (debug logging only): capture the rendered page 5s in and log
-                    // the bottom rows' pixels — splits "artifact is in the page render" from
-                    // "artifact is added by the compositor/OS after rendering".
-                    if (_dlog != null)
-                    {
-                        _ = System.Threading.Tasks.Task.Delay(5000).ContinueWith(_2 =>
-                            Dispatcher.BeginInvoke(new Action(() => _ = CaptureBottomRowsDiag())));
-                    }
                     if (_pendingAction.HasValue)
                     {
                         var pending = _pendingAction.Value;
@@ -731,12 +672,6 @@ namespace FullVid.Dialogs
                 }
                 if (string.IsNullOrEmpty(msg) || !msg.StartsWith("key:")) return;
                 var key = msg.Substring(4);
-                // Diagnostic blur A/B (debug logging only): B toggles the bar's backdrop-filter.
-                if ((key == "b" || key == "B") && _dlog != null)
-                {
-                    ToggleBlurDiag();
-                    return;
-                }
                 PlayerAction action;
                 switch (key)
                 {
@@ -765,14 +700,6 @@ namespace FullVid.Dialogs
         // same deduped dispatch.
         private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            Logger.Info("[KbdDiag] WPF PreviewKeyDown: " + e.Key);
-            // Diagnostic blur A/B (debug logging only): B toggles the bar's backdrop-filter.
-            if (e.Key == System.Windows.Input.Key.B && _dlog != null)
-            {
-                e.Handled = true;
-                ToggleBlurDiag();
-                return;
-            }
             PlayerAction action;
             switch (e.Key)
             {
@@ -954,89 +881,6 @@ namespace FullVid.Dialogs
 
             // Resizing can shuffle focus — make sure it stays on the host window.
             FocusHost("fullscreen-toggle");
-        }
-
-        // --- Bottom-edge seam diagnostics (active only when debug logging is on) ---
-
-        // B key: toggle the bar's backdrop-filter live. Deduped here because B arrives on both
-        // key paths (in-page capture + WPF PreviewKeyDown) and a double-toggle would undo itself.
-        private DateTime _lastBlurToggle = DateTime.MinValue;
-        private void ToggleBlurDiag()
-        {
-            var now = DateTime.Now;
-            if ((now - _lastBlurToggle).TotalMilliseconds < 350) return;
-            _lastBlurToggle = now;
-            var task = Web?.CoreWebView2?.ExecuteScriptAsync("window.fvToggleBlur?fvToggleBlur():''");
-            task?.ContinueWith(t =>
-            {
-                var state = t.Result ?? "?";
-                _dlog?.Debug("[Diag] blur toggle -> " + state);
-                // Capture the rendered page in THIS blur state ~1s after the toggle settles, so
-                // we get row data for both states (the auto-capture only caught one).
-                System.Threading.Tasks.Task.Delay(1000).ContinueWith(_2 =>
-                    Dispatcher.BeginInvoke(new Action(() => _ = CaptureBottomRowsDiag(state))));
-            });
-        }
-
-        // Captures the RENDERED page (CapturePreviewAsync includes backdrop-filter output) and
-        // logs the average color of each of the bottom 20 pixel rows. A last-row outlier here
-        // means the artifact exists in the page render itself; uniform rows here + a visible
-        // seam on screen means it's added after rendering (compositor / display scale / OS).
-        // The full capture is saved as diag_bottom.png in the plugin data folder.
-        private async System.Threading.Tasks.Task CaptureBottomRowsDiag(string label = "auto")
-        {
-            try
-            {
-                if (Web?.CoreWebView2 == null || _dlog == null) return;
-                using (var ms = new System.IO.MemoryStream())
-                {
-                    await Web.CoreWebView2.CapturePreviewAsync(
-                        CoreWebView2CapturePreviewImageFormat.Png, ms);
-                    ms.Position = 0;
-                    var dec = new System.Windows.Media.Imaging.PngBitmapDecoder(ms,
-                        System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
-                        System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
-                    var conv = new System.Windows.Media.Imaging.FormatConvertedBitmap(
-                        dec.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
-                    int w = conv.PixelWidth, h = conv.PixelHeight;
-                    int rows = Math.Min(20, h);
-                    int stride = w * 4;
-                    var buf = new byte[stride * rows];
-                    conv.CopyPixels(new Int32Rect(0, h - rows, w, rows), buf, stride, 0);
-
-                    // Fixed-point (x100) luminance per row, split into thirds — integer full-row
-                    // averages hid a subtle seam (11.4 vs 11.9 both logged as 11).
-                    _dlog.Debug($"[Diag] capture[{label}] {w}x{h}px, bottom {rows} rows, lum x100 (left|mid|right):");
-                    int third = w / 3;
-                    for (int r = 0; r < rows; r++)
-                    {
-                        long[] acc = new long[3];
-                        int off = r * stride;
-                        for (int x = 0; x < w; x++)
-                        {
-                            // Rec. 601-ish integer luminance.
-                            int px = off + x * 4;
-                            int lum = (buf[px + 2] * 299 + buf[px + 1] * 587 + buf[px] * 114) / 1000;
-                            acc[Math.Min(x / Math.Max(third, 1), 2)] += lum;
-                        }
-                        _dlog.Debug($"[Diag] row y={h - rows + r} lum=({acc[0] * 100 / third}|{acc[1] * 100 / third}|{acc[2] * 100 / (w - 2 * third)})");
-                    }
-
-                    var plugin = Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid;
-                    var dir = plugin?.GetPluginUserDataPath();
-                    if (!string.IsNullOrEmpty(dir))
-                    {
-                        var safe = System.Text.RegularExpressions.Regex.Replace(label, "[^A-Za-z0-9_-]", "_");
-                        var path = System.IO.Path.Combine(dir, "diag_bottom_" + safe + ".png");
-                        System.IO.File.WriteAllBytes(path, ms.ToArray());
-                        _dlog.Debug("[Diag] capture saved: " + path);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _dlog?.Debug("[Diag] capture failed: " + ex.Message);
-            }
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
