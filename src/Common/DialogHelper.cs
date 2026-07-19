@@ -247,19 +247,25 @@ namespace FullVid.Common
             window.Closing += (s, e) => ReturnFocusToMainWindow(playniteApi, context);
         }
 
-        // Returns focus to Playnite's main window (important for fullscreen mode).
+        // Returns focus to Playnite's main window after a dialog closes.
+        //
+        // Fullscreen mode: do NOTHING. Playnite restores focus to its own UI when a modal closes,
+        // and forcibly re-activating the main window here (Activate/Focus, and especially the
+        // Topmost on/off toggle) re-fires the focused game tile's activation on themes like Aniki
+        // — the game launches just from opening and closing FullReel, no button press needed.
+        // The manual focus-return was only ever needed in Desktop mode, so scope it there.
         public static void ReturnFocusToMainWindow(IPlayniteAPI playniteApi, string context = null)
         {
             try
             {
+                if (playniteApi?.ApplicationInfo?.Mode == ApplicationMode.Fullscreen)
+                    return;
+
                 var mainWindow = playniteApi?.Dialogs?.GetCurrentAppWindow();
                 if (mainWindow != null)
                 {
                     mainWindow.Activate();
                     mainWindow.Focus();
-                    // Toggle topmost to ensure focus is grabbed
-                    mainWindow.Topmost = true;
-                    mainWindow.Topmost = false;
                 }
             }
             catch (Exception ex)

@@ -384,12 +384,21 @@ namespace FullVid.Dialogs
                 // (if(window.player){...}) silently no-op, so early controller/key presses vanish —
                 // C# holds the first press and replays it on 'ready'.
                 "      onReady:function(){try{player.setPlaybackQuality('hd1080');}catch(e){}" +
-                // Force captions off — unloads the CC module regardless of the user's YT default.
-                "        try{player.unloadModule('captions');player.unloadModule('cc');}catch(e){}" +
+                "        fvKillCaptions();" +
                 "        try{chrome.webview.postMessage('ready');}catch(e){}}," +
-                // Once the video reaches PLAYING (state 1), reveal the top bar then auto-hide.
-                "      onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
+                // On PLAYING (1) reveal the top bar AND re-kill captions — YouTube re-inits the CC
+                // module when playback starts, so an onReady-only unload isn't enough.
+                "      onStateChange:function(e){if(e.data===1){fvShowTop();fvKillCaptions();}}}});" +
                 "}" +
+                // Kill captions thoroughly: unload the CC modules AND clear the active track via
+                // setOption. Runs on ready, on play, and a few delayed retries — YouTube can
+                // re-enable captions asynchronously after the first frame.
+                "window.fvKillCaptions=function(){try{if(!window.player)return;" +
+                "try{player.unloadModule('captions');}catch(e){}" +
+                "try{player.unloadModule('cc');}catch(e){}" +
+                "try{player.setOption('captions','track',{});}catch(e){}" +
+                "try{player.setOption('cc','track',{});}catch(e){}}catch(e){}};" +
+                "setTimeout(fvKillCaptions,1200);setTimeout(fvKillCaptions,3000);" +
                 "var s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';" +
                 "document.head.appendChild(s);" +
                 // Bar visibility. The TOP bar always auto-hides after 4s (its established behavior).
