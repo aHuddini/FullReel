@@ -23,7 +23,8 @@ namespace FullVid.Dialogs
         VolumeDown,
         Download,
         ToggleFullscreen,  // Select / F — expand the player to fill the screen and back
-        ToggleBottomBar    // RB / P — flip the bottom bar between shown and auto-hiding
+        ToggleBottomBar,   // RB / P — flip the bottom bar between shown and auto-hiding
+        CycleQuality       // LB / Q — cycle the manual quality (auto → 720 → … → 2160)
     }
 
     // Fullscreen WebView2 YouTube player. Transport is driven entirely from C#
@@ -77,6 +78,7 @@ namespace FullVid.Dialogs
             if (button == ControllerInput.Y) return PlayerAction.Download;
             if (button == ControllerInput.Back) return PlayerAction.ToggleFullscreen;
             if (button == ControllerInput.RightShoulder) return PlayerAction.ToggleBottomBar;
+            if (button == ControllerInput.LeftShoulder) return PlayerAction.CycleQuality;
 
             return PlayerAction.None;
         }
@@ -281,10 +283,11 @@ namespace FullVid.Dialogs
             // GradientFade reads better with taller bars so the gradient has room to fade.
             var topPad = style == PlayerBarStyle.GradientFade ? "18px 18px 30px" : "12px 18px";
             var botPad = style == PlayerBarStyle.GradientFade ? "30px 8px 14px" : "13px 8px";
-            // Pill accent: violet on the TintedPurple skin, neutral glass on the rest.
+            // Pill accent: violet on the TintedPurple skin, neutral glass on the rest. Low bg
+            // alpha + soft border so the bar's blur shows through and the pill reads subtly.
             var pillCss = style == PlayerBarStyle.TintedPurple
-                ? "color:#E6DFF7;background:rgba(139,92,246,.28);border:1px solid rgba(179,157,219,.4)"
-                : "color:#EDEDED;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25)";
+                ? "color:#E6DFF7;background:rgba(139,92,246,.14);border:1px solid rgba(179,157,219,.22)"
+                : "color:#EDEDED;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)";
 
             // Single <style> block with classes, not inline styles — both bars share .fvbar so
             // the glass (tint + blur + border) is identical on each; only the edge border and
@@ -369,12 +372,16 @@ namespace FullVid.Dialogs
                 // vq=hd1080 requests a high-res stream (60fps lives at 1080p+); YouTube treats it
                 // as a hint. onReady also suggests hd1080. Final quality is YouTube's call — the
                 // embed biases toward 'auto', so 60fps only plays if the video has it + net allows.
-                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,vq:'hd1080'}," +
+                // cc_load_policy:0 = don't force captions on; iv_load_policy:3 = hide annotations.
+                "    playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,vq:'hd1080'," +
+                "cc_load_policy:0,iv_load_policy:3}," +
                 "    events:{" +
                 // Tell C# the YT player object is live. Until this fires, transport scripts
                 // (if(window.player){...}) silently no-op, so early controller/key presses vanish —
                 // C# holds the first press and replays it on 'ready'.
                 "      onReady:function(){try{player.setPlaybackQuality('hd1080');}catch(e){}" +
+                // Force captions off — unloads the CC module regardless of the user's YT default.
+                "        try{player.unloadModule('captions');player.unloadModule('cc');}catch(e){}" +
                 "        try{chrome.webview.postMessage('ready');}catch(e){}}," +
                 // Once the video reaches PLAYING (state 1), reveal the top bar then auto-hide.
                 "      onStateChange:function(e){if(e.data===1)fvShowTop();}}});" +
@@ -404,20 +411,22 @@ namespace FullVid.Dialogs
                 "var q=document.getElementById('qual');if(q){q.textContent=d.fvq;" +
                 "if(typeof d.fvd==='string'&&/^\\d{2,4}x\\d{2,4}$/.test(d.fvd))" +
                 "q.title='Decoded: '+d.fvd+' — click to change quality';}}catch(x){}});" +
-                // Click the pill to cycle quality manually. The request goes into the embed
-                // iframe (#p — YT.Player turns the div into the iframe), which clamps it to
-                // what's available; the label snaps back to the REAL decoded resolution on the
-                // next report, so a declined pick is visible immediately.
+                // Cycle quality manually — driven by the pill click AND the LB/Q shortcut (C#
+                // calls window.fvCycleQuality). The request goes into the embed iframe (#p —
+                // YT.Player turns the div into the iframe), which clamps it to what's available;
+                // the label snaps back to the REAL decoded resolution on the next report, so a
+                // declined pick is visible immediately.
                 "var _qmodes=['auto','hd720','hd1080','hd1440','hd2160'];" +
                 "var _qlabels={auto:'auto',hd720:'720p',hd1080:'1080p',hd1440:'1440p',hd2160:'2160p'};" +
                 "var _qi=0;" +
-                "document.addEventListener('click',function(e){try{" +
-                "if(!e.target||e.target.id!=='qual')return;" +
+                "window.fvCycleQuality=function(){try{" +
                 "_qi=(_qi+1)%_qmodes.length;var m=_qmodes[_qi];" +
                 "var f=document.getElementById('p');" +
                 "if(f&&f.contentWindow)f.contentWindow.postMessage({fvSet:m},'*');" +
                 "var ql=document.getElementById('qual');if(ql)ql.textContent=_qlabels[m];" +
-                "if(window.fvShow)fvShow();" +
+                "if(window.fvShow)fvShow();}catch(x){}};" +
+                "document.addEventListener('click',function(e){try{" +
+                "if(e.target&&e.target.id==='qual')fvCycleQuality();" +
                 "}catch(x){}});" +
                 // Progress ticker: update the current / total time labels ~2x/sec.
                 "function _fmt(s){s=Math.max(0,Math.floor(s||0));var m=Math.floor(s/60);" +
@@ -431,7 +440,7 @@ namespace FullVid.Dialogs
                 // inside the WebView2 HWND, so this is the reliable path — it also stops YouTube's
                 // own keyboard controls from firing. Only our shortcut keys are intercepted.
                 "var _keys={' ':1,'k':1,'K':1,'ArrowLeft':1,'ArrowRight':1,'ArrowUp':1,'ArrowDown':1," +
-                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'Escape':1};" +
+                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'q':1,'Q':1,'Escape':1};" +
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
                 "</script></body></html>";
@@ -684,6 +693,7 @@ namespace FullVid.Dialogs
                     case "d": case "D": action = PlayerAction.Download; break;
                     case "f": case "F": action = PlayerAction.ToggleFullscreen; break;
                     case "p": case "P": action = PlayerAction.ToggleBottomBar; break;
+                    case "q": case "Q": action = PlayerAction.CycleQuality; break;
                     case "Escape": action = PlayerAction.Close; break;
                     default: return;
                 }
@@ -713,6 +723,7 @@ namespace FullVid.Dialogs
                 case System.Windows.Input.Key.D: action = PlayerAction.Download; break;
                 case System.Windows.Input.Key.F: action = PlayerAction.ToggleFullscreen; break;
                 case System.Windows.Input.Key.P: action = PlayerAction.ToggleBottomBar; break;
+                case System.Windows.Input.Key.Q: action = PlayerAction.CycleQuality; break;
                 default: return;
             }
             e.Handled = true;
@@ -823,6 +834,10 @@ namespace FullVid.Dialogs
                     // fullscreen state so restoring windowed doesn't strand a hidden bar.
                     _bottomAuto = !_bottomAuto;
                     Script("if(window.fvSetBottomAuto)fvSetBottomAuto(" + (_bottomAuto ? "true" : "false") + ");");
+                    break;
+                case PlayerAction.CycleQuality:
+                    // Same as clicking the pill: cycle auto → 720 → 1080 → 1440 → 2160.
+                    Script("if(window.fvCycleQuality)fvCycleQuality();");
                     break;
             }
         }
