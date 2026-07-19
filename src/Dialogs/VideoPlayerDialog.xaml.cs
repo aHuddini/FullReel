@@ -340,17 +340,12 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
 
-            // The bar extends 32px BELOW the viewport (bottom:-32px) with the same 32px added as
-            // extra bottom padding, so the visible layout is pixel-identical. Why: backdrop-filter
-            // duplicates edge rows where the kernel runs past the element's boundary, which showed
-            // as a brighter blurred hairline at the bar's bottom edge. Pushing the element's
-            // boundary off-screen moves the clamp artifact out of view ("extend and clip").
-            var botPadExt = style == PlayerBarStyle.GradientFade ? "46px" : "45px";
             var bottomBar = !frostedBar ? "" :
-                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:-32px;z-index:2147483647;" +
-                "pointer-events:none;padding:" + botPad + ";padding-bottom:" + botPadExt + ";box-sizing:border-box;" +
+                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
+                "pointer-events:none;padding:" + botPad + ";box-sizing:border-box;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
-                "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
+                // Glass (tint+blur) lives on #bbar::before — see the stylesheet comment.
+                "border-top:" + botBorder + ";" +
                 "transition:transform .35s ease,opacity .35s ease;" +
                 "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;\">" +
                 // Left cell: live playing-resolution pill (fed by the embed script's postMessage).
@@ -380,7 +375,16 @@ namespace FullVid.Dialogs
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
                 "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
-                "#qual:empty{display:none !important}</style>" +
+                "#qual:empty{display:none !important}" +
+                // The bottom bar's glass lives on a ::before layer, NOT the bar element:
+                // Chromium rasterizes the blurred backdrop and the element's background tint as
+                // SEPARATE layers, and at fractional display scaling they can snap to device
+                // pixels one row apart at the viewport edge — the last row showed blur without
+                // tint (a brighter hairline). Tint+blur on ONE layer can't diverge, and the
+                // -2px bottom overshoot pushes the edge-snap row off-screen. The show/hide
+                // transform stays on #bbar itself, off the filtered layer (crbug 1194050).
+                "#bbar::before{content:'';position:absolute;left:0;right:0;top:0;bottom:-2px;" +
+                "z-index:-1;background:" + botBg + ";" + blurCss + "}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
