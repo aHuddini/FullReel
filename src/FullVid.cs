@@ -61,8 +61,12 @@ namespace FullVid
         {
             _api = api;
             _fileLogger = new FileLogger(GetPluginUserDataPath(), _api?.Paths?.ConfigurationPath);
-            _controllerRouter = new ControllerEventRouter(_fileLogger);
             _settingsViewModel = new FullVidSettingsViewModel(this);
+            // Gate FileLogger.Debug on the setting — without this the null IsDebugEnabled meant
+            // debug logging was ALWAYS on, spamming FullReel.log (every controller press) for all
+            // users and making the "Enable debug logging" checkbox a no-op.
+            _fileLogger.IsDebugEnabled = () => _settingsViewModel?.Settings?.EnableDebugLogging == true;
+            _controllerRouter = new ControllerEventRouter(_fileLogger);
 
             // Without HasSettings, Playnite never surfaces the settings page even though
             // GetSettings/GetSettingsView are implemented — the add-on shows no settings entry.

@@ -69,7 +69,13 @@ namespace FullVid
         public bool ForceHdPlayback { get => forceHdPlayback; set { forceHdPlayback = value; OnPropertyChanged(); } }
 
         private int searchResultCount = 10;
-        public int SearchResultCount { get => searchResultCount; set { searchResultCount = value; OnPropertyChanged(); } }
+        // Clamp 1..50 in the setter — the settings TextBox is unvalidated, and a huge value goes
+        // straight into yt-dlp's ytsearch{n}: (a slow, unbounded search). Covers every entry path.
+        public int SearchResultCount
+        {
+            get => searchResultCount;
+            set { searchResultCount = System.Math.Max(1, System.Math.Min(50, value)); OnPropertyChanged(); }
+        }
 
         private string queryTemplate = "{name} gameplay trailer";
         public string QueryTemplate { get => queryTemplate; set { queryTemplate = value ?? string.Empty; OnPropertyChanged(); } }
