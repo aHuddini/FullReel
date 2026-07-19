@@ -24,7 +24,7 @@ Built with the help of Claude Code and Cursor IDE
 
 
 
-https://github.com/user-attachments/assets/e46a03c4-2d71-493b-b05a-01ba25c735f5
+https://github.com/user-attachments/assets/595f2c39-c482-4de9-9c1c-07a7829d14d0
 
 
 
