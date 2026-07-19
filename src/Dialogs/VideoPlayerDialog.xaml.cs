@@ -951,7 +951,15 @@ namespace FullVid.Dialogs
             if ((now - _lastBlurToggle).TotalMilliseconds < 350) return;
             _lastBlurToggle = now;
             var task = Web?.CoreWebView2?.ExecuteScriptAsync("window.fvToggleBlur?fvToggleBlur():''");
-            task?.ContinueWith(t => _dlog?.Debug("[Diag] blur toggle -> " + (t.Result ?? "?")));
+            task?.ContinueWith(t =>
+            {
+                var state = t.Result ?? "?";
+                _dlog?.Debug("[Diag] blur toggle -> " + state);
+                // Capture the rendered page in THIS blur state ~1s after the toggle settles, so
+                // we get row data for both states (the auto-capture only caught one).
+                System.Threading.Tasks.Task.Delay(1000).ContinueWith(_2 =>
+                    Dispatcher.BeginInvoke(new Action(() => _ = CaptureBottomRowsDiag(state))));
+            });
         }
 
         // Captures the RENDERED page (CapturePreviewAsync includes backdrop-filter output) and
@@ -959,7 +967,7 @@ namespace FullVid.Dialogs
         // means the artifact exists in the page render itself; uniform rows here + a visible
         // seam on screen means it's added after rendering (compositor / display scale / OS).
         // The full capture is saved as diag_bottom.png in the plugin data folder.
-        private async System.Threading.Tasks.Task CaptureBottomRowsDiag()
+        private async System.Threading.Tasks.Task CaptureBottomRowsDiag(string label = "auto")
         {
             try
             {
@@ -980,25 +988,30 @@ namespace FullVid.Dialogs
                     var buf = new byte[stride * rows];
                     conv.CopyPixels(new Int32Rect(0, h - rows, w, rows), buf, stride, 0);
 
-                    _dlog.Debug($"[Diag] capture {w}x{h}px, bottom {rows} rows, avg (R,G,B) per row:");
+                    // Fixed-point (x100) luminance per row, split into thirds — integer full-row
+                    // averages hid a subtle seam (11.4 vs 11.9 both logged as 11).
+                    _dlog.Debug($"[Diag] capture[{label}] {w}x{h}px, bottom {rows} rows, lum x100 (left|mid|right):");
+                    int third = w / 3;
                     for (int r = 0; r < rows; r++)
                     {
-                        long bAcc = 0, gAcc = 0, rAcc = 0;
+                        long[] acc = new long[3];
                         int off = r * stride;
                         for (int x = 0; x < w; x++)
                         {
-                            bAcc += buf[off + x * 4];
-                            gAcc += buf[off + x * 4 + 1];
-                            rAcc += buf[off + x * 4 + 2];
+                            // Rec. 601-ish integer luminance.
+                            int px = off + x * 4;
+                            int lum = (buf[px + 2] * 299 + buf[px + 1] * 587 + buf[px] * 114) / 1000;
+                            acc[Math.Min(x / Math.Max(third, 1), 2)] += lum;
                         }
-                        _dlog.Debug($"[Diag] row y={h - rows + r} avg=({rAcc / w},{gAcc / w},{bAcc / w})");
+                        _dlog.Debug($"[Diag] row y={h - rows + r} lum=({acc[0] * 100 / third}|{acc[1] * 100 / third}|{acc[2] * 100 / (w - 2 * third)})");
                     }
 
                     var plugin = Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid;
                     var dir = plugin?.GetPluginUserDataPath();
                     if (!string.IsNullOrEmpty(dir))
                     {
-                        var path = System.IO.Path.Combine(dir, "diag_bottom.png");
+                        var safe = System.Text.RegularExpressions.Regex.Replace(label, "[^A-Za-z0-9_-]", "_");
+                        var path = System.IO.Path.Combine(dir, "diag_bottom_" + safe + ".png");
                         System.IO.File.WriteAllBytes(path, ms.ToArray());
                         _dlog.Debug("[Diag] capture saved: " + path);
                     }
