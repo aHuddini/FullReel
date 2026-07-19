@@ -391,8 +391,16 @@ namespace FullVid.Dialogs
                 // tint (a brighter hairline). Tint+blur on ONE layer can't diverge, and the
                 // -2px bottom overshoot pushes the edge-snap row off-screen. The show/hide
                 // transform stays on #bbar itself, off the filtered layer (crbug 1194050).
+                // Layered background: a bottom scrim (transparent until the last 10px, darkening
+                // to near-opaque at the edge) stacked over the skin tint. The live window's
+                // composition shows a measured ~5.5 CSS px band at the bottom where the bar's
+                // tint doesn't fully land (sub-pixel pipeline mismatch, unreproducible outside
+                // the real WebView2 window); the scrim covers the full band and reads as
+                // intentional edge weighting, like YouTube's own player scrim.
                 "#bbar::before{content:'';position:absolute;left:0;right:0;top:0;bottom:-2px;" +
-                "z-index:-1;background:" + botBg + ";" + blurCss + "}</style>" +
+                "z-index:-1;background:" +
+                "linear-gradient(to bottom,rgba(0,0,0,0) calc(100% - 10px),rgba(8,8,10,.92))," +
+                botBg + ";" + blurCss + "}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
                 "var player;" +
