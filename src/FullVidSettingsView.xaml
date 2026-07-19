@@ -120,6 +120,8 @@
                         <ComboBox Width="140" SelectedItem="{Binding Settings.CookiesSource}"
                                   ItemsSource="{Binding Source={StaticResource CookieModeValues}}"/>
                     </StackPanel>
+                    <TextBlock Text="Leave on None unless a download fails as age-restricted or region-locked. Browser cookies (esp. Chrome/Edge) often fail to extract on recent versions — if so, use a custom cookies.txt file instead, or close the browser first."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,5">
                         <TextBlock Text="Custom cookies file:" VerticalAlignment="Center" Width="110"/>
                         <TextBox Text="{Binding Settings.CustomCookiesFilePath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
@@ -145,7 +147,9 @@
                         <LineBreak/><LineBreak/>
                         <Run Text="5. If you downloaded the .exe files with a browser, right-click each → Properties → Unblock."/>
                         <LineBreak/><LineBreak/>
-                        <Run Text="6. Still stuck? Tick 'Enable debug logging' below, retry the action, then open the log folder and check FullReel.log for the error."/>
+                        <Run Text="6. Search works but DOWNLOADS fail? Check Cookies source on the General tab. Browser cookies (esp. Chrome/Edge) often can't be read on recent versions. Set it to None, or use a custom cookies.txt file — only enable cookies for age-restricted or region-locked videos."/>
+                        <LineBreak/><LineBreak/>
+                        <Run Text="7. Still stuck? Tick 'Enable debug logging' below, retry the action, then open the log folder and check FullReel.log for the error."/>
                     </TextBlock>
 
                     <Separator Margin="0,18"/>

@@ -106,7 +106,8 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 3. **Best practice:** put `deno.exe` in the **same folder** as `yt-dlp.exe`.
 4. Keep the tools in a simple path (e.g. `C:\Tools\`), not folders with unusual characters, and off read-only or system-protected locations.
 5. If you downloaded the `.exe` files with a browser, right-click each → Properties → **Unblock**.
-6. Still stuck? Enable **debug logging** in settings, retry, then open the log folder and check `FullReel.log` for the exact error.
+6. **Search works but downloads fail?** Check **Cookies source** in settings. Browser cookies (especially Chrome/Edge) often can't be read on recent browser versions. Set it to **None**, or use a custom `cookies.txt` file — only enable cookies for age-restricted or region-locked videos.
+7. Still stuck? Enable **debug logging** in settings, retry, then open the log folder and check `FullReel.log` for the exact error.
 
 ---
 
