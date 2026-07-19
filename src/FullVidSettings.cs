@@ -68,6 +68,7 @@ namespace FullVid
         private bool forceHdPlayback = true;
         public bool ForceHdPlayback { get => forceHdPlayback; set { forceHdPlayback = value; OnPropertyChanged(); } }
 
+
         private int searchResultCount = 10;
         // Clamp 1..50 in the setter — the settings TextBox is unvalidated, and a huge value goes
         // straight into yt-dlp's ytsearch{n}: (a slow, unbounded search). Covers every entry path.

@@ -139,7 +139,7 @@
                     <TextBlock TextWrapping="Wrap" Foreground="#DDDDDD" FontSize="12" LineHeight="21">
                         <Run Text="1. All three tools must show a checkmark on the General tab — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
                         <LineBreak/><LineBreak/>
-                        <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe."/>
+                        <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe. These versions are known-good with FullReel: yt-dlp 2026.03.17, ffmpeg 8.0.1 (gyan.dev build), deno 2.7.13."/>
                         <LineBreak/><LineBreak/>
                         <Run Text="3. Best practice: put deno.exe in the SAME folder as yt-dlp.exe."/>
                         <LineBreak/><LineBreak/>

@@ -351,6 +351,13 @@ namespace FullVid.Dialogs
                     // (initial focus can miss before the content is rendered), then replay any press
                     // the user made during the init gap so it isn't silently dropped.
                     FocusHost("player-ready");
+                    // Windowed opens with the bottom bar pinned shown — auto-hide is a
+                    // fullscreen-only behavior. Push directly (not via Script, which no-ops until
+                    // _webReady) so the state is deterministic and the bar can't drift to
+                    // auto-hiding on its own in windowed.
+                    var autoHide = _isFullscreen && _bottomAuto;
+                    Web?.CoreWebView2?.ExecuteScriptAsync(
+                        "if(window.fvSetBottomAuto)fvSetBottomAuto(" + (autoHide ? "true" : "false") + ");");
                     if (_pendingAction.HasValue)
                     {
                         var pending = _pendingAction.Value;
@@ -574,6 +581,9 @@ namespace FullVid.Dialogs
 
             // Resizing can shuffle focus — make sure it stays on the host window.
             FocusHost("fullscreen-toggle");
+            // Hide the cursor immediately — the resize can park it over the video and trigger
+            // YouTube's hover UI. (The idle timer would catch it in 2.5s; do it now.)
+            Script("document.body.classList.add('fvnocursor');");
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2

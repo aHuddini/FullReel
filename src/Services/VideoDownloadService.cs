@@ -129,11 +129,16 @@ namespace FullVid.Services
                     return false;
                 }
 
-                // Step 3: atomically move into place. File.Move won't overwrite on .NET Fx, so
-                // delete an existing trailer first.
-                if (File.Exists(emlPath))
-                    File.Delete(emlPath);
-                File.Move(tmpMp4, emlPath);
+                // Step 3: replace the existing trailer. ExtraMetadataLoader keeps the current
+                // game's VideoTrailer.mp4 open (its player has a handle), so a plain
+                // Delete/Move throws a sharing violation when replacing a just-played trailer.
+                // Retry with backoff (EML releases the handle shortly), then report clearly.
+                if (!ReplaceTrailer(tmpMp4, emlPath))
+                {
+                    progress?.Report("Couldn't replace the existing trailer — it may be open in " +
+                        "ExtraMetadataLoader. Select a different game (or restart Playnite), then try again.");
+                    return false;
+                }
 
                 progress?.Report("Done.");
                 Log("VideoTrailer written: " + emlPath);
@@ -171,6 +176,30 @@ namespace FullVid.Services
         // Prefer H.264 (avc1) video + AAC (mp4a) audio within each tier: EML's target format is
         // H.264/AAC, so an avc1+mp4a download lands as .mp4 and only needs a container remux
         // (seconds) instead of a full libx264 re-encode (minutes for a 1080p60/4K VP9 pick).
+        // Move src onto dest, replacing an existing dest even when it's transiently locked by
+        // ExtraMetadataLoader's player. Retries the delete+move a few times with backoff; returns
+        // false only if it stays locked. File.Move won't overwrite on .NET Fx, hence delete-first.
+        private bool ReplaceTrailer(string src, string dest)
+        {
+            const int attempts = 6;
+            for (int i = 0; i < attempts; i++)
+            {
+                try
+                {
+                    if (File.Exists(dest))
+                        File.Delete(dest);
+                    File.Move(src, dest);
+                    return true;
+                }
+                catch (IOException) { }            // sharing violation — EML still holds the file
+                catch (UnauthorizedAccessException) { }
+                if (i < attempts - 1)
+                    System.Threading.Thread.Sleep(400);
+            }
+            Log("ReplaceTrailer: destination stayed locked after retries: " + dest);
+            return false;
+        }
+
         private static string FormatSelector(VideoQuality q)
         {
             switch (q)

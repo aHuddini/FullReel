@@ -62,12 +62,20 @@ namespace FullVid.Dialogs
             // pseudo-element's edge didn't align with the parent's in the live compositor.
             var css =
                 "html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-                // #p (the YT iframe) is a centered 16:9 COVER block, not width/height:100%: a 100%
-                // iframe letterboxes the video whenever the window aspect isn't exactly 16:9 — the
-                // black strip lands under the bottom bar where its blur looks broken. Cover sizing
-                // keeps real video under every edge; the overflow sliver is cropped.
+                // Hide the mouse cursor after a short idle — this is a controller-first player and
+                // a parked cursor triggers YouTube's own hover UI over the video. Any mouse move
+                // restores it (see the JS idle-cursor timer).
+                "body.fvnocursor,body.fvnocursor *{cursor:none !important}" +
+                // #p (the YT iframe) is a centered 16:9 COVER block. Cover sizing keeps real video
+                // under every edge; the overflow sliver is cropped.
+                // +4px on BOTH axes so the video box never EXACTLY matches the window client rect
+                // (WebView2 #5574: an exact-match box is promoted to a full-surface overlay that
+                // stale-skips the page — glass bars vanish over black frames; the 1280x720 windowed
+                // player is the exact-match case, fullscreen overshoots via cover-crop and is fine).
+                // 4px is the reliable threshold (3px still let the bar vanish). Symmetric on both
+                // axes and centered, so the extra crop is even. Overhang clipped by overflow:hidden.
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
+                "width:calc(max(100vw,177.7778vh) + 4px);height:calc(max(100vh,56.25vw) + 4px)}" +
                 // Shared bar glass. pointer-events:none = display-only; all input stays in C#.
                 ".fvbar{position:fixed;left:0;right:0;z-index:2147483647;pointer-events:none;" +
                 "box-sizing:border-box;color:#F5F5F5;" +
@@ -79,12 +87,20 @@ namespace FullVid.Dialogs
                 "background:" + topBg + ";border-bottom:" + topBorder + "}" +
                 ".fvbar-bottom{bottom:0;padding:" + botPad + ";font:14px 'Segoe UI',sans-serif;" +
                 "background:" + botBg + ";border-top:" + botBorder + ";" +
-                "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px}" +
+                // Fixed content-row height so nothing that appears after load (the quality pill,
+                // the ticking time) can grow the row and shift the bar up a pixel. 21px = the
+                // tallest cell (the pill: 11px text + 2px*2 pad + 1px*2 border).
+                "display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;" +
+                "grid-auto-rows:21px}" +
                 ".fvleft{text-align:left;padding-left:6px}" +
+                // Pill reserves its height from the start (min-width keeps it from popping wider
+                // either). When empty it's visibility:hidden — still occupies layout — so the
+                // resolution label appearing ~1-2s in doesn't reflow/grow the bar row.
                 ".fvpill{display:inline-block;pointer-events:auto;cursor:pointer;" +
                 "font:600 11px 'Segoe UI',sans-serif;border-radius:999px;padding:2px 10px;" +
+                "line-height:15px;min-width:34px;text-align:center;box-sizing:border-box;" +
                 "letter-spacing:.3px;" + pillCss + "}" +
-                "#qual:empty{display:none !important}" +
+                "#qual:empty{visibility:hidden}" +
                 ".fvlegend{text-align:center}" +
                 ".fvsep{color:rgba(255,255,255,.4)}" +
                 ".fvkey{color:#B39DDB}.fvkey-close{color:#EF9A9A}" +
@@ -132,7 +148,8 @@ namespace FullVid.Dialogs
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
                 "<style>" + css + "</style>" +
-                "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
+                "</head><body><div id=\"p\"></div>" +
+                topBar + bottomBar +
                 "<script>" +
                 "var player;" +
                 "function onYouTubeIframeAPIReady(){" +
@@ -172,12 +189,17 @@ namespace FullVid.Dialogs
                 "var _tt,_tb,fvBottomAuto=false;" +
                 "function _set(id,show,dir){var e=document.getElementById(id);if(!e)return;" +
                 "e.style.opacity=show?'1':'0';e.style.transform=show?'translateY(0)':('translateY('+dir+'100%)');}" +
+                // Bottom bar: shown by default and its ONLY hide path is its own 4s timer, armed
+                // solely when fvBottomAuto is on (fullscreen auto-hide). fvShow (fired on play/
+                // input) never touches the bottom timer, so it can't drift to hiding on its own.
                 "window.fvSetBottomAuto=function(on){fvBottomAuto=!!on;" +
-                "if(!fvBottomAuto){if(_tb)clearTimeout(_tb);_set('bbar',1,'');}else fvShow();};" +
+                "if(_tb)clearTimeout(_tb);_set('bbar',1,'');" +
+                "if(fvBottomAuto)_tb=setTimeout(function(){_set('bbar',0,'');},4000);};" +
+                // fvShow reveals both bars and (re)arms ONLY the top bar's auto-hide. It re-shows
+                // the bottom bar and, if auto-hide is on, restarts its timer — but it never hides.
                 "window.fvShow=function(){_set('tbar',1,'-');_set('bbar',1,'');" +
                 "if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){_set('tbar',0,'-');},4000);" +
-                "if(_tb)clearTimeout(_tb);" +
-                "if(fvBottomAuto)_tb=setTimeout(function(){_set('bbar',0,'');},4000);};" +
+                "if(fvBottomAuto){if(_tb)clearTimeout(_tb);_tb=setTimeout(function(){_set('bbar',0,'');},4000);}};" +
                 "window.fvShowTop=window.fvShow;" +
                 // Quality label: the embed-side script (BuildEmbedScript) posts {fvq:'1080p'} from
                 // inside the iframe on every adaptive resolution switch; only YouTube frames are
@@ -187,7 +209,8 @@ namespace FullVid.Dialogs
                 "var d=e.data;if(!d||typeof d.fvq!=='string'||!/^\\d{3,4}p$/.test(d.fvq))return;" +
                 "var q=document.getElementById('qual');if(q){q.textContent=d.fvq;" +
                 "if(typeof d.fvd==='string'&&/^\\d{2,4}x\\d{2,4}$/.test(d.fvd))" +
-                "q.title='Decoded: '+d.fvd+' — click to change quality';}}catch(x){}});" +
+                "q.title='Decoded: '+d.fvd+' — click to change quality';}" +
+                "}catch(x){}});" +
                 // Cycle quality manually — driven by the pill click AND the LB/Q shortcut (C#
                 // calls window.fvCycleQuality). The request goes into the embed iframe (#p —
                 // YT.Player turns the div into the iframe), which clamps it to what's available;
@@ -220,6 +243,14 @@ namespace FullVid.Dialogs
                 "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'q':1,'Q':1,'Escape':1};" +
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
+                // Idle cursor: hide it 2.5s after the last mouse move (controller users never move
+                // it, so a parked cursor + YouTube's hover UI just sits over the video). Any move
+                // shows it again and rearms the timer.
+                "var _ct;function _cursorIdle(){document.body.classList.add('fvnocursor');}" +
+                "document.addEventListener('mousemove',function(){" +
+                "document.body.classList.remove('fvnocursor');" +
+                "clearTimeout(_ct);_ct=setTimeout(_cursorIdle,2500);},true);" +
+                "_ct=setTimeout(_cursorIdle,2500);" +
                 "</script></body></html>";
         }
 
