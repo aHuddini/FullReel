@@ -22,9 +22,9 @@ Built with the help of Claude Code and Cursor IDE
 
 ## 🎬 Demo
 
-
-
-https://github.com/user-attachments/assets/595f2c39-c482-4de9-9c1c-07a7829d14d0
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/595f2c39-c482-4de9-9c1c-07a7829d14d0" width="440" controls></video>
+</p>
 
 
 
