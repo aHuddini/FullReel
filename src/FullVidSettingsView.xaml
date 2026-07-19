@@ -94,6 +94,11 @@
                     <TextBlock Text="Unchecked: the controls bar stays visible in fullscreen. RB / P toggles it during playback either way."
                                FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
 
+                    <CheckBox Content="Keep the controls bar visible over black video (recommended)"
+                              IsChecked="{Binding Settings.KeepBarOverBlack}" Margin="0,12,0,0"/>
+                    <TextBlock Text="Works around a WebView2 bug where the glass bar can vanish over solid-black video frames (letterboxed content). Nudges the video by a few pixels; the crop is symmetric and imperceptible on normal video. Uncheck only if you want the exact original framing."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+
                     <Separator Margin="0,16"/>
 
                     <TextBlock Text="Search" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>

@@ -68,6 +68,13 @@ namespace FullVid
         private bool forceHdPlayback = true;
         public bool ForceHdPlayback { get => forceHdPlayback; set { forceHdPlayback = value; OnPropertyChanged(); } }
 
+        // Keep the controls bar visible over solid-black video frames (fixes WebView2 #5574 by
+        // nudging the video box 4px so it doesn't exactly match the window and trigger the overlay
+        // present-skip). On by default. The 4px is a symmetric crop, imperceptible on normal video;
+        // this switch is only for users who want the exact original framing.
+        private bool keepBarOverBlack = true;
+        public bool KeepBarOverBlack { get => keepBarOverBlack; set { keepBarOverBlack = value; OnPropertyChanged(); } }
+
 
         private int searchResultCount = 10;
         // Clamp 1..50 in the setter — the settings TextBox is unvalidated, and a huge value goes

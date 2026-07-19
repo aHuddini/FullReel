@@ -231,7 +231,8 @@ namespace FullVid.Dialogs
                 return;
 
             var style = _settings?.PlayerBarStyle ?? PlayerBarStyle.FrostedBlur;
-            var html = PlayerPage.BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty, style, _frosted);
+            var html = PlayerPage.BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty,
+                style, _frosted, _settings?.KeepBarOverBlack != false);
             var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
             var env = Web.CoreWebView2.Environment;
             e.Response = env.CreateWebResourceResponse(stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
@@ -581,9 +582,6 @@ namespace FullVid.Dialogs
 
             // Resizing can shuffle focus — make sure it stays on the host window.
             FocusHost("fullscreen-toggle");
-            // Hide the cursor immediately — the resize can park it over the video and trigger
-            // YouTube's hover UI. (The idle timer would catch it in 2.5s; do it now.)
-            Script("document.body.classList.add('fvnocursor');");
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2

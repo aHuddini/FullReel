@@ -41,7 +41,7 @@ namespace FullVid.Dialogs
         // Builds the hosted player page. In every glass style the controls-hint legend is an
         // in-page overlay with backdrop-filter — Chromium blurs the live video on the GPU, no WPF.
         // GradientFade adds extra bottom padding on the top bar so the gradient has room to fade.
-        internal static string BuildPlayerHtml(string videoId, string title, PlayerBarStyle style, bool frostedBar)
+        internal static string BuildPlayerHtml(string videoId, string title, PlayerBarStyle style, bool frostedBar, bool keepBarOverBlack)
         {
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
@@ -62,20 +62,25 @@ namespace FullVid.Dialogs
             // pseudo-element's edge didn't align with the parent's in the live compositor.
             var css =
                 "html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-                // Hide the mouse cursor after a short idle — this is a controller-first player and
-                // a parked cursor triggers YouTube's own hover UI over the video. Any mouse move
-                // restores it (see the JS idle-cursor timer).
-                "body.fvnocursor,body.fvnocursor *{cursor:none !important}" +
+                // #mouseshield: a transparent layer OVER the video iframe that swallows mouse
+                // events, so the cursor sitting over the player never reaches YouTube's embed and
+                // its hover/tooltip UI never appears. Sits below the control bars (lower z) so the
+                // quality pill still gets clicks; the player is controller/keyboard driven so the
+                // video needs no mouse interaction.
+                "#mouseshield{position:fixed;inset:0;z-index:2147483645}" +
                 // #p (the YT iframe) is a centered 16:9 COVER block. Cover sizing keeps real video
                 // under every edge; the overflow sliver is cropped.
-                // +4px on BOTH axes so the video box never EXACTLY matches the window client rect
-                // (WebView2 #5574: an exact-match box is promoted to a full-surface overlay that
-                // stale-skips the page — glass bars vanish over black frames; the 1280x720 windowed
-                // player is the exact-match case, fullscreen overshoots via cover-crop and is fine).
-                // 4px is the reliable threshold (3px still let the bar vanish). Symmetric on both
-                // axes and centered, so the extra crop is even. Overhang clipped by overflow:hidden.
+                // keepBarOverBlack ON: +4px on BOTH axes so the video box never EXACTLY matches the
+                // window client rect (WebView2 #5574: an exact-match box is promoted to a
+                // full-surface overlay that stale-skips the page — glass bars vanish over black
+                // frames; the 1280x720 windowed player is the exact-match case, fullscreen
+                // overshoots via cover-crop and is fine). 4px is the reliable threshold (3px still
+                // let the bar vanish). Symmetric and centered, so the extra crop is even and
+                // imperceptible. OFF: exact original framing (bar may vanish over black).
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:calc(max(100vw,177.7778vh) + 4px);height:calc(max(100vh,56.25vw) + 4px)}" +
+                (keepBarOverBlack
+                    ? "width:calc(max(100vw,177.7778vh) + 4px);height:calc(max(100vh,56.25vw) + 4px)}"
+                    : "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}") +
                 // Shared bar glass. pointer-events:none = display-only; all input stays in C#.
                 ".fvbar{position:fixed;left:0;right:0;z-index:2147483647;pointer-events:none;" +
                 "box-sizing:border-box;color:#F5F5F5;" +
@@ -148,7 +153,7 @@ namespace FullVid.Dialogs
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
                 "<style>" + css + "</style>" +
-                "</head><body><div id=\"p\"></div>" +
+                "</head><body><div id=\"p\"></div><div id=\"mouseshield\"></div>" +
                 topBar + bottomBar +
                 "<script>" +
                 "var player;" +
@@ -243,14 +248,6 @@ namespace FullVid.Dialogs
                 "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'q':1,'Q':1,'Escape':1};" +
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
-                // Idle cursor: hide it 2.5s after the last mouse move (controller users never move
-                // it, so a parked cursor + YouTube's hover UI just sits over the video). Any move
-                // shows it again and rearms the timer.
-                "var _ct;function _cursorIdle(){document.body.classList.add('fvnocursor');}" +
-                "document.addEventListener('mousemove',function(){" +
-                "document.body.classList.remove('fvnocursor');" +
-                "clearTimeout(_ct);_ct=setTimeout(_cursorIdle,2500);},true);" +
-                "_ct=setTimeout(_cursorIdle,2500);" +
                 "</script></body></html>";
         }
 
