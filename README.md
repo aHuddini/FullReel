@@ -97,6 +97,19 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 
 ---
 
+## Troubleshooting
+
+**Search or downloads return nothing:**
+
+1. All three tools must show a green ✓ in settings — **yt-dlp, ffmpeg, AND deno**. YouTube now needs deno to fetch videos, so a missing/invalid deno silently breaks search and download.
+2. Use the official **Windows (.exe)** builds of all three: `yt-dlp.exe`, the Windows build's `ffmpeg.exe`, and the Windows `deno.exe`.
+3. **Best practice:** put `deno.exe` in the **same folder** as `yt-dlp.exe`.
+4. Keep the tools in a simple path (e.g. `C:\Tools\`), not folders with unusual characters, and off read-only or system-protected locations.
+5. If you downloaded the `.exe` files with a browser, right-click each → Properties → **Unblock**.
+6. Still stuck? Enable **debug logging** in settings, retry, then open the log folder and check `FullReel.log` for the exact error.
+
+---
+
 ## Support
 
 If FullReel is useful to you, consider [buying me a coffee](https://ko-fi.com/huddini).

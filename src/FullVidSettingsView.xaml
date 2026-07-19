@@ -123,6 +123,25 @@
 
             <Separator Margin="0,16"/>
 
+            <TextBlock Text="Troubleshooting" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+            <TextBlock TextWrapping="Wrap" Foreground="#DDDDDD" FontSize="12" LineHeight="19">
+                <Run Text="Search or downloads returning nothing?" FontWeight="SemiBold"/>
+                <LineBreak/>
+                <Run Text="1. All three tools must show a green ✓ above — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
+                <LineBreak/>
+                <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe."/>
+                <LineBreak/>
+                <Run Text="3. Best practice: put deno.exe in the SAME folder as yt-dlp.exe."/>
+                <LineBreak/>
+                <Run Text="4. Keep the tools in a simple path (e.g. C:\Tools\), not folders with unusual characters, and off read-only or system-protected locations."/>
+                <LineBreak/>
+                <Run Text="5. If you downloaded the .exe files with a browser, right-click each → Properties → Unblock."/>
+                <LineBreak/>
+                <Run Text="6. Still stuck? Tick 'Enable debug logging' below, retry, then open the log folder and check FullReel.log for the error."/>
+            </TextBlock>
+
+            <Separator Margin="0,16"/>
+
             <StackPanel Orientation="Horizontal">
                 <CheckBox Content="Enable debug logging (FullReel.log)"
                           IsChecked="{Binding Settings.EnableDebugLogging}" VerticalAlignment="Center"/>
