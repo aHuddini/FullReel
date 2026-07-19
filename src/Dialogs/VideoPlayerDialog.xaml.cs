@@ -454,8 +454,16 @@ namespace FullVid.Dialogs
                 // and forward to C# via postMessage. WPF PreviewKeyDown misses keys once focus is
                 // inside the WebView2 HWND, so this is the reliable path — it also stops YouTube's
                 // own keyboard controls from firing. Only our shortcut keys are intercepted.
+                // Diagnostic: toggles the bottom bar's backdrop-filter live (debug logging only —
+                // C# gates the key). Seam A/B: if the edge line vanishes with the blur off, the
+                // blur is implicated; if it stays, the blur is innocent.
+                "window.fvToggleBlur=function(){var s=document.getElementById('dbgblur');" +
+                "if(s){s.remove();return 'blur ON';}" +
+                "s=document.createElement('style');s.id='dbgblur';" +
+                "s.textContent='#bbar::before{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}';" +
+                "document.head.appendChild(s);return 'blur OFF';};" +
                 "var _keys={' ':1,'k':1,'K':1,'ArrowLeft':1,'ArrowRight':1,'ArrowUp':1,'ArrowDown':1," +
-                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'Escape':1};" +
+                "'d':1,'D':1,'f':1,'F':1,'p':1,'P':1,'b':1,'B':1,'Escape':1};" +
                 "document.addEventListener('keydown',function(e){if(_keys[e.key]){e.preventDefault();" +
                 "e.stopPropagation();try{chrome.webview.postMessage('key:'+e.key);}catch(x){}}},true);" +
                 "</script></body></html>";
@@ -689,6 +697,14 @@ namespace FullVid.Dialogs
                     // (initial focus can miss before the content is rendered), then replay any press
                     // the user made during the init gap so it isn't silently dropped.
                     FocusHost("player-ready");
+                    // Diagnostic (debug logging only): capture the rendered page 5s in and log
+                    // the bottom rows' pixels — splits "artifact is in the page render" from
+                    // "artifact is added by the compositor/OS after rendering".
+                    if (_dlog != null)
+                    {
+                        _ = System.Threading.Tasks.Task.Delay(5000).ContinueWith(_2 =>
+                            Dispatcher.BeginInvoke(new Action(() => _ = CaptureBottomRowsDiag())));
+                    }
                     if (_pendingAction.HasValue)
                     {
                         var pending = _pendingAction.Value;
@@ -699,6 +715,12 @@ namespace FullVid.Dialogs
                 }
                 if (string.IsNullOrEmpty(msg) || !msg.StartsWith("key:")) return;
                 var key = msg.Substring(4);
+                // Diagnostic blur A/B (debug logging only): B toggles the bar's backdrop-filter.
+                if ((key == "b" || key == "B") && _dlog != null)
+                {
+                    ToggleBlurDiag();
+                    return;
+                }
                 PlayerAction action;
                 switch (key)
                 {
@@ -728,6 +750,13 @@ namespace FullVid.Dialogs
         private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             Logger.Info("[KbdDiag] WPF PreviewKeyDown: " + e.Key);
+            // Diagnostic blur A/B (debug logging only): B toggles the bar's backdrop-filter.
+            if (e.Key == System.Windows.Input.Key.B && _dlog != null)
+            {
+                e.Handled = true;
+                ToggleBlurDiag();
+                return;
+            }
             PlayerAction action;
             switch (e.Key)
             {
@@ -909,6 +938,76 @@ namespace FullVid.Dialogs
 
             // Resizing can shuffle focus — make sure it stays on the host window.
             FocusHost("fullscreen-toggle");
+        }
+
+        // --- Bottom-edge seam diagnostics (active only when debug logging is on) ---
+
+        // B key: toggle the bar's backdrop-filter live. Deduped here because B arrives on both
+        // key paths (in-page capture + WPF PreviewKeyDown) and a double-toggle would undo itself.
+        private DateTime _lastBlurToggle = DateTime.MinValue;
+        private void ToggleBlurDiag()
+        {
+            var now = DateTime.Now;
+            if ((now - _lastBlurToggle).TotalMilliseconds < 350) return;
+            _lastBlurToggle = now;
+            var task = Web?.CoreWebView2?.ExecuteScriptAsync("window.fvToggleBlur?fvToggleBlur():''");
+            task?.ContinueWith(t => _dlog?.Debug("[Diag] blur toggle -> " + (t.Result ?? "?")));
+        }
+
+        // Captures the RENDERED page (CapturePreviewAsync includes backdrop-filter output) and
+        // logs the average color of each of the bottom 20 pixel rows. A last-row outlier here
+        // means the artifact exists in the page render itself; uniform rows here + a visible
+        // seam on screen means it's added after rendering (compositor / display scale / OS).
+        // The full capture is saved as diag_bottom.png in the plugin data folder.
+        private async System.Threading.Tasks.Task CaptureBottomRowsDiag()
+        {
+            try
+            {
+                if (Web?.CoreWebView2 == null || _dlog == null) return;
+                using (var ms = new System.IO.MemoryStream())
+                {
+                    await Web.CoreWebView2.CapturePreviewAsync(
+                        CoreWebView2CapturePreviewImageFormat.Png, ms);
+                    ms.Position = 0;
+                    var dec = new System.Windows.Media.Imaging.PngBitmapDecoder(ms,
+                        System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+                        System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+                    var conv = new System.Windows.Media.Imaging.FormatConvertedBitmap(
+                        dec.Frames[0], System.Windows.Media.PixelFormats.Bgra32, null, 0);
+                    int w = conv.PixelWidth, h = conv.PixelHeight;
+                    int rows = Math.Min(20, h);
+                    int stride = w * 4;
+                    var buf = new byte[stride * rows];
+                    conv.CopyPixels(new Int32Rect(0, h - rows, w, rows), buf, stride, 0);
+
+                    _dlog.Debug($"[Diag] capture {w}x{h}px, bottom {rows} rows, avg (R,G,B) per row:");
+                    for (int r = 0; r < rows; r++)
+                    {
+                        long bAcc = 0, gAcc = 0, rAcc = 0;
+                        int off = r * stride;
+                        for (int x = 0; x < w; x++)
+                        {
+                            bAcc += buf[off + x * 4];
+                            gAcc += buf[off + x * 4 + 1];
+                            rAcc += buf[off + x * 4 + 2];
+                        }
+                        _dlog.Debug($"[Diag] row y={h - rows + r} avg=({rAcc / w},{gAcc / w},{bAcc / w})");
+                    }
+
+                    var plugin = Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid;
+                    var dir = plugin?.GetPluginUserDataPath();
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        var path = System.IO.Path.Combine(dir, "diag_bottom.png");
+                        System.IO.File.WriteAllBytes(path, ms.ToArray());
+                        _dlog.Debug("[Diag] capture saved: " + path);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _dlog?.Debug("[Diag] capture failed: " + ex.Message);
+            }
         }
 
         // Fire a transport script against the YT IFrame API. No-op until the CoreWebView2
