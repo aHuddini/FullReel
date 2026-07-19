@@ -36,6 +36,13 @@ namespace FullVid.Dialogs
     {
         private static readonly ILogger Logger = LogManager.GetLogger();
 
+        // One WebView2 environment shared across every player open. CreateAsync spins up
+        // browser-process coordination and is the heaviest part of opening the dialog; the same
+        // env legally backs many WebView2 controls, so caching it makes the 2nd+ open reach first
+        // frame noticeably faster. Built once on the UI thread (opens are UI-thread serialized, so
+        // no lock is needed), reused thereafter.
+        private static CoreWebView2Environment _sharedEnv;
+
         private readonly IPlayniteAPI _api;
         private readonly FullVidSettings _settings;
         private readonly UniPlaySongBridge _bridge;
@@ -157,9 +164,13 @@ namespace FullVid.Dialogs
             {
                 // --autoplay-policy=no-user-gesture-required so the picked video starts on load
                 // instead of waiting for an A/Space press (WebView2 blocks autoplay by default).
-                var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
-                var env = await CoreWebView2Environment.CreateAsync(null, null, options);
-                await Web.EnsureCoreWebView2Async(env);
+                // Env is cached across opens (see _sharedEnv) — only the first open pays for it.
+                if (_sharedEnv == null)
+                {
+                    var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
+                    _sharedEnv = await CoreWebView2Environment.CreateAsync(null, null, options);
+                }
+                await Web.EnsureCoreWebView2Async(_sharedEnv);
             }
             catch (Exception ex)
             {

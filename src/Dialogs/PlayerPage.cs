@@ -191,8 +191,9 @@ namespace FullVid.Dialogs
                 // The BOTTOM bar only auto-hides when fvBottomAuto is on — C# sets that ONLY while
                 // the player is expanded to fullscreen, so the windowed player keeps its bar shown.
                 // fvShow() reveals both + rearms the timers; C# pokes it on every input.
-                "var _tt,_tb,fvBottomAuto=false;" +
+                "var _tt,_tb,fvBottomAuto=false,_botShown=true;" +
                 "function _set(id,show,dir){var e=document.getElementById(id);if(!e)return;" +
+                "if(id==='bbar')_botShown=!!show;" +
                 "e.style.opacity=show?'1':'0';e.style.transform=show?'translateY(0)':('translateY('+dir+'100%)');}" +
                 // Bottom bar: shown by default and its ONLY hide path is its own 4s timer, armed
                 // solely when fvBottomAuto is on (fullscreen auto-hide). fvShow (fired on play/
@@ -233,10 +234,12 @@ namespace FullVid.Dialogs
                 "document.addEventListener('click',function(e){try{" +
                 "if(e.target&&e.target.id==='qual')fvCycleQuality();" +
                 "}catch(x){}});" +
-                // Progress ticker: update the current / total time labels ~2x/sec.
+                // Progress ticker: update the current / total time labels ~2x/sec. Skips the DOM
+                // work while the bottom bar is hidden (fullscreen auto-hide) — the labels aren't
+                // visible then, so there's nothing to update.
                 "function _fmt(s){s=Math.max(0,Math.floor(s||0));var m=Math.floor(s/60);" +
                 "var ss=s%60;return m+':'+(ss<10?'0':'')+ss;}" +
-                "setInterval(function(){if(!window.player||!player.getDuration)return;" +
+                "setInterval(function(){if(!_botShown||!window.player||!player.getDuration)return;" +
                 "var d=player.getDuration()||0,c=player.getCurrentTime()||0;" +
                 "var cu=document.getElementById('cur');if(cu)cu.textContent=_fmt(c);" +
                 "var to=document.getElementById('tot');if(to&&d>0)to.textContent=_fmt(d);},500);" +
