@@ -102,7 +102,16 @@ namespace FullVid.Common
                 Width = width,
                 Height = height,
                 Content = content,
-                Background = new SolidColorBrush(DefaultDarkBackground),
+                // Black, not the dark-gray DefaultDarkBackground: this is the WINDOW's own
+                // background, which shows as a bright gray line at the window's inner bottom edge
+                // where the WebView2 content rounds ~1px short at fractional DPI. Black makes that
+                // edge invisible (the video is black-bordered anyway). Separate from the Grid
+                // background inside the player content, which is also black.
+                Background = System.Windows.Media.Brushes.Black,
+                // Force content edges onto whole physical pixels so the WebView2 child can't land
+                // 1px short of the window's inner edge at fractional DPI (the seam's home).
+                UseLayoutRounding = true,
+                SnapsToDevicePixels = true,
                 // Center on the monitor, not the owner window — a video player should sit
                 // dead-center regardless of where Playnite's window is.
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,

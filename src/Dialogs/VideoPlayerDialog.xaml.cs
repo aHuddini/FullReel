@@ -156,6 +156,10 @@ namespace FullVid.Dialogs
 
             try
             {
+                // TEMP seam A/B: the seam-test path forces Window-to-Visual hosting — WebView2
+                // outputs through an IDCompositionVisual instead of the windowed swap-chain that
+                // the bottom-edge scanout seam lives in (every other layer ruled out). Env var +
+                // values are the documented WebView2 contract; must be set before init.
                 // --autoplay-policy=no-user-gesture-required so the picked video starts on load
                 // instead of waiting for an A/Space press (WebView2 blocks autoplay by default).
                 var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
