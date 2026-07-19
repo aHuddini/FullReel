@@ -98,8 +98,7 @@ namespace FullVid.Dialogs
             _bridge = bridge;
             _onDownload = onDownload;
 
-            // Read the confirm/cancel swap once, up front. Read-only SDK property; default
-            // to un-swapped on any failure so A always confirms in the worst case.
+            // Default to un-swapped on any failure so A always confirms in the worst case.
             try { _swapAB = api?.ApplicationSettings?.Fullscreen?.SwapConfirmCancelButtons ?? false; }
             catch { _swapAB = false; }
 
@@ -112,7 +111,7 @@ namespace FullVid.Dialogs
             GetRouter()?.Register(this);
             _dlog = (Application.Current?.Properties?[DialogHelper.PluginPropertyKey] as FullVid)?.GetFileLogger();
             _dlog?.Debug("[Player] Loaded, controller registered");
-            // Seed the session's bottom-bar preference from settings (RB/P can flip it live).
+            // Seed the session's bottom-bar preference; RB/P can flip it live.
             _bottomAuto = _settings?.FullscreenBarAutoHide ?? false;
 
             SetupHintBar();
@@ -208,8 +207,8 @@ namespace FullVid.Dialogs
             FocusHost("initial");
         }
 
-        // Choose the hint-bar style from settings. FrostedBlur = HTML overlay inside the page
-        // (BuildPlayerHtml includes it); Performance = plain WPF strip below the video.
+        // FrostedBlur = HTML overlay inside the page (BuildPlayerHtml includes it);
+        // Performance = plain WPF strip below the video.
         private void SetupHintBar()
         {
             _frosted = _settings?.PlayerBarStyle != PlayerBarStyle.Performance;
@@ -295,7 +294,7 @@ namespace FullVid.Dialogs
             }
         }
 
-        // On the hosting window's Closed — the single choke point for every close path.
+        // The single choke point for every close path.
         private void OnWindowClosed(object sender, EventArgs e)
         {
             if (sender is Window w)
@@ -483,7 +482,6 @@ namespace FullVid.Dialogs
             switch (action)
             {
                 case PlayerAction.PlayPause:
-                    // Toggle via the player's own state so one press flips play<->pause.
                     Script("if(window.player){var s=player.getPlayerState&&player.getPlayerState();" +
                            "if(s===1){player.pauseVideo();}else{player.playVideo();}}");
                     break;
@@ -517,7 +515,6 @@ namespace FullVid.Dialogs
                     Script("if(window.fvSetBottomAuto)fvSetBottomAuto(" + (_bottomAuto ? "true" : "false") + ");");
                     break;
                 case PlayerAction.CycleQuality:
-                    // Same as clicking the pill: cycle auto → 720 → 1080 → 1440 → 2160.
                     Script("if(window.fvCycleQuality)fvCycleQuality();");
                     break;
             }

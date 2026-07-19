@@ -6,10 +6,8 @@ namespace FullVid.Dialogs
     // The dialog drives all transport from C# via ExecuteScriptAsync against this page.
     internal static class PlayerPage
     {
-        // The hosted page: an IFrame Player API player filling the window, no native controls.
-        // autoplay=1, controls=0 — all transport is driven from C# via ExecuteScriptAsync.
-        // Per-style glass skin for the bars. All are in-page CSS (backdrop-filter over the live
-        // video). Returns (topBackground, bottomBackground, blurPx, topBorderCss, bottomBorderCss).
+        // Per-style glass skin for the bars (in-page CSS, backdrop-filter over the live video).
+        // Returns (topBackground, bottomBackground, blurPx, topBorderCss, bottomBorderCss).
         internal static void GetBarSkin(PlayerBarStyle style, out string topBg, out string botBg,
             out int blur, out string topBorder, out string botBorder)
         {
@@ -48,7 +46,7 @@ namespace FullVid.Dialogs
             var safeId = System.Text.RegularExpressions.Regex.Replace(videoId ?? string.Empty, "[^A-Za-z0-9_-]", "");
 
             GetBarSkin(style, out var topBg, out var botBg, out var blur, out var topBorder, out var botBorder);
-            // GradientFade reads better with taller bars so the gradient has room to fade.
+            // GradientFade uses taller bars so the gradient has room to fade.
             var topPad = style == PlayerBarStyle.GradientFade ? "18px 18px 30px" : "12px 18px";
             var botPad = style == PlayerBarStyle.GradientFade ? "30px 8px 14px" : "13px 8px";
             // Pill accent: violet on the TintedPurple skin, neutral glass on the rest. Low bg

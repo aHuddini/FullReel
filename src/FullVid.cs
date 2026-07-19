@@ -151,7 +151,7 @@ namespace FullVid
 
                 if (cache.TryGetValue(categoryIndex, out var cached))
                 {
-                    dialog.SetResults(cached); // already loaded this session — no re-search
+                    dialog.SetResults(cached);
                     return;
                 }
 

@@ -17,10 +17,10 @@ namespace FullVid
     // Target video quality for trailer downloads.
     public enum VideoQuality
     {
-        Best,       // best available
-        P1080,      // up to 1080p
-        P720,       // up to 720p
-        P480        // up to 480p
+        Best,
+        P1080,
+        P720,
+        P480
     }
 
     // How the player's controls hint bar is rendered. All except Performance are in-page CSS

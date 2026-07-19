@@ -80,7 +80,7 @@ namespace FullVid.Services
             {
                 Directory.CreateDirectory(_tempRoot);
 
-                // Step 1: yt-dlp download best video+audio.
+                // Step 1: yt-dlp download.
                 progress?.Report("Downloading video...");
                 var ytArgs = BuildYtDlpArgs(url, tempBase);
                 Log("yt-dlp " + ytArgs);

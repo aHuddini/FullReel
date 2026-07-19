@@ -27,18 +27,12 @@ namespace FullVid.Common
 
         private static readonly ILogger Logger = LogManager.GetLogger();
 
-        // Dialog background (#212121)
         public static readonly Color DefaultDarkBackground = Color.FromRgb(33, 33, 33);
-
-        // Success border - Material Design green (#4CAF50)
         public static readonly Color ToastSuccessBorderColor = Color.FromRgb(76, 175, 80);
-
-        // Error border - Material Design red (#F44336)
         public static readonly Color ToastErrorBorderColor = Color.FromRgb(244, 67, 54);
-
-        private static readonly Color HintTextColor = Color.FromRgb(150, 150, 150);           // #969696
-        private static readonly Color ButtonUnselectedBg = Color.FromRgb(60, 60, 60);         // #3C3C3C
-        private static readonly Color ButtonUnselectedBorder = Color.FromRgb(100, 100, 100);  // #646464
+        private static readonly Color HintTextColor = Color.FromRgb(150, 150, 150);
+        private static readonly Color ButtonUnselectedBg = Color.FromRgb(60, 60, 60);
+        private static readonly Color ButtonUnselectedBorder = Color.FromRgb(100, 100, 100);
 
         // Application.Current.Properties key under which FullVid registers itself so
         // dialogs can reach the shared ControllerEventRouter.
@@ -177,17 +171,16 @@ namespace FullVid.Common
             var width = options.Width;
             var height = options.Height;
 
-            // Ensure dialog fits within screen bounds (with margin for window chrome/taskbar)
+            // Clamp to screen bounds, leaving margin for window chrome/taskbar.
             try
             {
                 var screenWidth = SystemParameters.PrimaryScreenWidth;
                 var screenHeight = SystemParameters.PrimaryScreenHeight;
-                var maxWidth = screenWidth * 0.95;  // 95% of screen width
-                var maxHeight = screenHeight * 0.90; // 90% of screen height (account for taskbar)
+                var maxWidth = screenWidth * 0.95;
+                var maxHeight = screenHeight * 0.90;
 
                 if (width > maxWidth || height > maxHeight)
                 {
-                    // Scale down proportionally to fit
                     var widthRatio = maxWidth / width;
                     var heightRatio = maxHeight / height;
                     var scaleDown = Math.Min(widthRatio, heightRatio);
@@ -305,29 +298,24 @@ namespace FullVid.Common
                 System.Windows.Controls.Button noButton = null;
                 int selectedIndex = 0; // 0 = Yes, 1 = No
 
-                // Create buttons with references
                 Action updateButtonStyles = () =>
                 {
                     if (yesButton == null || noButton == null) return;
 
-                    // Yes button: green when selected, gray when not
                     yesButton.Background = new SolidColorBrush(selectedIndex == 0 ? ToastSuccessBorderColor : ButtonUnselectedBg);
                     yesButton.BorderBrush = new SolidColorBrush(selectedIndex == 0 ? Colors.White : ButtonUnselectedBorder);
                     yesButton.BorderThickness = selectedIndex == 0 ? new Thickness(3) : new Thickness(1);
 
-                    // No button: red when selected, gray when not
                     noButton.Background = new SolidColorBrush(selectedIndex == 1 ? ToastErrorBorderColor : ButtonUnselectedBg);
                     noButton.BorderBrush = new SolidColorBrush(selectedIndex == 1 ? Colors.White : ButtonUnselectedBorder);
                     noButton.BorderThickness = selectedIndex == 1 ? new Thickness(3) : new Thickness(1);
                 };
 
-                // Create the confirmation content with controller support
                 var grid = new System.Windows.Controls.Grid();
                 grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
                 grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
 
-                // Message text
                 var textBlock = new System.Windows.Controls.TextBlock
                 {
                     Text = message,
@@ -342,7 +330,6 @@ namespace FullVid.Common
                 System.Windows.Controls.Grid.SetRow(textBlock, 0);
                 grid.Children.Add(textBlock);
 
-                // Controller hint
                 var hintText = new System.Windows.Controls.TextBlock
                 {
                     Text = "D-Pad/Arrows: Select  •  A/Enter: Confirm  •  B/Esc: Cancel",
@@ -354,7 +341,6 @@ namespace FullVid.Common
                 System.Windows.Controls.Grid.SetRow(hintText, 1);
                 grid.Children.Add(hintText);
 
-                // Button panel
                 var buttonPanel = new System.Windows.Controls.StackPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
@@ -415,7 +401,6 @@ namespace FullVid.Common
                 System.Windows.Controls.Grid.SetRow(buttonPanel, 2);
                 grid.Children.Add(buttonPanel);
 
-                // Initial button styles
                 updateButtonStyles();
 
                 window = CreateDialog(playniteApi, grid, new DialogOptions
@@ -492,7 +477,6 @@ namespace FullVid.Common
             catch (Exception ex)
             {
                 Logger.Debug(ex, "Error showing controller confirmation, falling back to standard dialog");
-                // Fallback to standard Playnite dialog
                 return playniteApi.Dialogs.ShowMessage(message, title, MessageBoxButton.YesNo) == MessageBoxResult.Yes;
             }
         }
