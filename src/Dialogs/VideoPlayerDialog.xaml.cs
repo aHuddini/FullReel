@@ -229,13 +229,6 @@ namespace FullVid.Dialogs
 
             PerfBar.Visibility = _frosted ? Visibility.Collapsed : Visibility.Visible;
             PerfBarRow.Height = _frosted ? new GridLength(0) : GridLength.Auto;
-
-            // At fractional DPI the WebView2 child HWND rounds ~1px short of the window's bottom
-            // edge, so the in-page bottom bar (fixed;bottom:0 in the PAGE) stops a hairline above
-            // the true window edge. Stretch the control 2px past every edge (the window clips the
-            // overhang) so the page's edges land exactly on the window's. Frosted only — the
-            // Performance strip sits in its own row below and must not be overlapped.
-            Web.Margin = _frosted ? new Thickness(-2) : new Thickness(0);
         }
 
         // Virtual origin for our hosted player page. A real https host name is what makes
@@ -347,9 +340,15 @@ namespace FullVid.Dialogs
                 "<span style=\"color:rgba(255,255,255,.4)\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>" +
                 "<b style=\"color:#EF9A9A\">B / Esc</b> Close";
 
+            // The bar extends 32px BELOW the viewport (bottom:-32px) with the same 32px added as
+            // extra bottom padding, so the visible layout is pixel-identical. Why: backdrop-filter
+            // duplicates edge rows where the kernel runs past the element's boundary, which showed
+            // as a brighter blurred hairline at the bar's bottom edge. Pushing the element's
+            // boundary off-screen moves the clamp artifact out of view ("extend and clip").
+            var botPadExt = style == PlayerBarStyle.GradientFade ? "46px" : "45px";
             var bottomBar = !frostedBar ? "" :
-                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:0;z-index:2147483647;" +
-                "pointer-events:none;padding:" + botPad + ";box-sizing:border-box;" +
+                "<div id=\"bbar\" style=\"position:fixed;left:0;right:0;bottom:-32px;z-index:2147483647;" +
+                "pointer-events:none;padding:" + botPad + ";padding-bottom:" + botPadExt + ";box-sizing:border-box;" +
                 "font:14px 'Segoe UI',sans-serif;color:#F5F5F5;" +
                 "background:" + botBg + ";border-top:" + botBorder + ";" + blurCss +
                 "transition:transform .35s ease,opacity .35s ease;" +
@@ -369,15 +368,7 @@ namespace FullVid.Dialogs
                 "<span style=\"text-align:center\">" + legend + "</span>" +
                 "<span style=\"text-align:right;font:600 12px 'Segoe UI',sans-serif;color:#BBB;padding-right:6px\">" +
                 "<span id=\"cur\">0:00</span> / <span id=\"tot\">0:00</span></span>" +
-                "</div>" +
-                // Opaque 2px strip over the window's very bottom edge. Chromium rounds the
-                // backdrop-filter region to integer CSS pixels at fractional DPR, leaving the
-                // final physical row unfiltered — raw video peeked through as a bright seam no
-                // layout tweak could remove. Opaque paint doesn't involve the filter, so the seam
-                // is simply covered; visually it reads as the bar's bottom border.
-                "<div id=\"bseam\" style=\"position:fixed;left:0;right:0;bottom:0;height:2px;" +
-                "background:rgba(12,12,16,.96);z-index:2147483647;pointer-events:none;" +
-                "transition:opacity .35s ease\"></div>";
+                "</div>";
 
             return
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
@@ -387,11 +378,8 @@ namespace FullVid.Dialogs
                 // glass bar, so its backdrop-filter blurs black and looks broken. Cover sizing
                 // keeps real video under every edge; the sliver of overflow is cropped.
                 "<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}" +
-                // +2px oversize: translate(-50%,-50%) centering can land on a half-pixel, leaving
-                // a hairline row at an edge where the bar blurs the page background instead of
-                // video. Overlapping every edge by 1px makes the seam impossible.
                 "#p{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);" +
-                "width:calc(max(100vw,177.7778vh) + 2px);height:calc(max(100vh,56.25vw) + 2px)}" +
+                "width:max(100vw,177.7778vh);height:max(100vh,56.25vw)}" +
                 "#qual:empty{display:none !important}</style>" +
                 "</head><body><div id=\"p\"></div>" + topBar + bottomBar +
                 "<script>" +
@@ -419,9 +407,7 @@ namespace FullVid.Dialogs
                 // fvShow() reveals both + rearms the timers; C# pokes it on every input.
                 "var _tt,_tb,fvBottomAuto=false;" +
                 "function _set(id,show,dir){var e=document.getElementById(id);if(!e)return;" +
-                "e.style.opacity=show?'1':'0';e.style.transform=show?'translateY(0)':('translateY('+dir+'100%)');" +
-                // The opaque seam strip under the bottom bar shows/hides with it.
-                "if(id==='bbar'){var b=document.getElementById('bseam');if(b)b.style.opacity=show?'1':'0';}}" +
+                "e.style.opacity=show?'1':'0';e.style.transform=show?'translateY(0)':('translateY('+dir+'100%)');}" +
                 "window.fvSetBottomAuto=function(on){fvBottomAuto=!!on;" +
                 "if(!fvBottomAuto){if(_tb)clearTimeout(_tb);_set('bbar',1,'');}else fvShow();};" +
                 "window.fvShow=function(){_set('tbar',1,'-');_set('bbar',1,'');" +
