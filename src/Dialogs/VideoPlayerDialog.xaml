@@ -19,14 +19,20 @@
                  styles (a FrameworkElement can't have two parents). -->
             <TextBlock x:Key="HintText" x:Shared="False"
                        FontSize="14" TextAlignment="Center" TextWrapping="Wrap">
-                <Run Text="A / Space" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Play/Pause" Foreground="#F5F5F5"/>
-                <Run Text="   •   " Foreground="#66FFFFFF"/>
-                <Run Text="◄ ►" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Seek 10s" Foreground="#F5F5F5"/>
-                <Run Text="   •   " Foreground="#66FFFFFF"/>
-                <Run Text="▲ ▼" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Volume" Foreground="#F5F5F5"/>
-                <Run Text="   •   " Foreground="#66FFFFFF"/>
-                <Run Text="Y / D" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Download" Foreground="#F5F5F5"/>
-                <Run Text="   •   " Foreground="#66FFFFFF"/>
+                <Run Text="A / Space" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Play" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="◄ ►" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Seek" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="▲ ▼" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Vol" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="LB / Q" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Quality" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="Y / D" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Save" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="Select / F" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Fullscreen" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
+                <Run Text="RB / P" Foreground="#B39DDB" FontWeight="Bold"/><Run Text=" Hide UI" Foreground="#F5F5F5"/>
+                <Run Text=" • " Foreground="#66FFFFFF"/>
                 <Run Text="B / Esc" Foreground="#EF9A9A" FontWeight="Bold"/><Run Text=" Close" Foreground="#F5F5F5"/>
             </TextBlock>
         </ResourceDictionary>

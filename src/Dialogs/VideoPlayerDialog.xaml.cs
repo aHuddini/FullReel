@@ -347,14 +347,16 @@ namespace FullVid.Dialogs
 
             // Legend: controls centered, "current / total" at the far right; grid keeps the
             // legend truly centered regardless of the time width.
-            const string sep = "<span class=\"fvsep\">&nbsp;&nbsp;•&nbsp;&nbsp;</span>";
+            const string sep = "<span class=\"fvsep\">&nbsp;•&nbsp;</span>";
+            // Terse labels to fit more controls in the bar's real estate. Quality (LB/Q) added.
             const string legend =
-                "<b class=\"fvkey\">A / Space</b> Play/Pause" + sep +
-                "<b class=\"fvkey\">◄ ►</b> Seek 10s" + sep +
-                "<b class=\"fvkey\">▲ ▼</b> Volume" + sep +
-                "<b class=\"fvkey\">Y / D</b> Download" + sep +
+                "<b class=\"fvkey\">A / Space</b> Play" + sep +
+                "<b class=\"fvkey\">◄ ►</b> Seek" + sep +
+                "<b class=\"fvkey\">▲ ▼</b> Vol" + sep +
+                "<b class=\"fvkey\">LB / Q</b> Quality" + sep +
+                "<b class=\"fvkey\">Y / D</b> Save" + sep +
                 "<b class=\"fvkey\">Select / F</b> Fullscreen" + sep +
-                "<b class=\"fvkey\">RB / P</b> Bottom bar" + sep +
+                "<b class=\"fvkey\">RB / P</b> Hide UI" + sep +
                 "<b class=\"fvkey-close\">B / Esc</b> Close";
 
             var bottomBar = !frostedBar ? "" :
