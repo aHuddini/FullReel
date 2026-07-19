@@ -171,7 +171,15 @@ namespace FullVid.Dialogs
             {
                 // --autoplay-policy=no-user-gesture-required so the picked video starts on load
                 // instead of waiting for an A/Space press (WebView2 blocks autoplay by default).
-                var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
+                // DIAG: --disable-direct-composition-video-overlays — the video normally scans
+                // out through a DirectComposition hardware overlay whose color pipeline differs
+                // from regular composition (crbug 40900941); the boundary row showed as a subtle
+                // bright seam at the bar's bottom edge that no page/WPF/DWM change touched and
+                // that CapturePreviewAsync couldn't capture (single-pipeline). Forcing the video
+                // through the normal compositor removes the boundary. If confirmed, decide
+                // whether to keep (slightly higher GPU cost) or gate behind a setting.
+                var options = new CoreWebView2EnvironmentOptions(
+                    "--autoplay-policy=no-user-gesture-required --disable-direct-composition-video-overlays");
                 var env = await CoreWebView2Environment.CreateAsync(null, null, options);
                 await Web.EnsureCoreWebView2Async(env);
             }
