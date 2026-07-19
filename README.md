@@ -101,7 +101,7 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 
 **Search or downloads return nothing:**
 
-1. All three tools must show a green ✓ in settings — **yt-dlp, ffmpeg, AND deno**. YouTube now needs deno to fetch videos, so a missing/invalid deno silently breaks search and download.
+1. All three tools must show a checkmark in settings — **yt-dlp, ffmpeg, AND deno**. YouTube now needs deno to fetch videos, so a missing/invalid deno silently breaks search and download.
 2. Use the official **Windows (.exe)** builds of all three: `yt-dlp.exe`, the Windows build's `ffmpeg.exe`, and the Windows `deno.exe`.
 3. **Best practice:** put `deno.exe` in the **same folder** as `yt-dlp.exe`.
 4. Keep the tools in a simple path (e.g. `C:\Tools\`), not folders with unusual characters, and off read-only or system-protected locations.

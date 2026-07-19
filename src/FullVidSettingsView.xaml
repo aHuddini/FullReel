@@ -135,7 +135,7 @@
                 <StackPanel Margin="20">
                     <TextBlock Text="Search or downloads returning nothing?" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                     <TextBlock TextWrapping="Wrap" Foreground="#DDDDDD" FontSize="12" LineHeight="21">
-                        <Run Text="1. All three tools must show a green ✓ on the General tab — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
+                        <Run Text="1. All three tools must show a checkmark on the General tab — yt-dlp, ffmpeg, AND deno. YouTube now needs deno to fetch videos."/>
                         <LineBreak/><LineBreak/>
                         <Run Text="2. Use the official Windows (.exe) builds of all three. yt-dlp: yt-dlp.exe. ffmpeg: the Windows build's ffmpeg.exe. deno: the Windows deno.exe."/>
                         <LineBreak/><LineBreak/>
