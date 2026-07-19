@@ -23,7 +23,7 @@ Built with the help of Claude Code and Cursor IDE
 ## 🎬 Demo
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/619a58f6-834a-4ce1-89b6-9dbd0b7b1d2b" width="560" controls></video>
+  <video src="https://github.com/user-attachments/assets/bcb5a9b5-feff-4e96-ae7b-0165e06d9659" width="560" controls></video>
 </p>
 
 ---
