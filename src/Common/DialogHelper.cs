@@ -121,8 +121,30 @@ namespace FullVid.Common
                 Logger.Debug(ex, "Error setting borderless window owner");
             }
 
+            // Windows 11's DWM composites a ~1px border + rounded corners onto every top-level
+            // window AFTER app rendering — on the borderless player it showed as a subtle gray
+            // hairline riding the bottom edge that no in-page or WPF paint could remove. Turn
+            // both off at the DWM level. The attributes don't exist before Win11 (22000); the
+            // call fails harmlessly there.
+            window.SourceInitialized += (s, e) =>
+            {
+                try
+                {
+                    var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+                    if (hwnd == IntPtr.Zero) return;
+                    int cornerPreference = 1; // DWMWCP_DONOTROUND
+                    DwmSetWindowAttribute(hwnd, 33 /*DWMWA_WINDOW_CORNER_PREFERENCE*/, ref cornerPreference, sizeof(int));
+                    int borderColor = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+                    DwmSetWindowAttribute(hwnd, 34 /*DWMWA_BORDER_COLOR*/, ref borderColor, sizeof(int));
+                }
+                catch { }
+            };
+
             return window;
         }
+
+        [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
         // Creates a dialog with full customization options.
         public static Window CreateDialog(
