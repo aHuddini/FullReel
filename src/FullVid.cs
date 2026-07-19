@@ -269,9 +269,10 @@ namespace FullVid
                 _fileLogger);
 
             var ok = false;
+            var lastStatus = string.Empty; // the final phase message — names which step failed
             _api.Dialogs.ActivateGlobalProgress(gp =>
             {
-                var progress = new Progress<string>(text => gp.Text = text);
+                var progress = new Progress<string>(text => { gp.Text = text; lastStatus = text; });
                 try
                 {
                     ok = service.DownloadAsync(video, game, progress, gp.CancelToken).GetAwaiter().GetResult();
@@ -279,6 +280,7 @@ namespace FullVid
                 catch (Exception ex)
                 {
                     _fileLogger?.Error("Download failed: " + ex.Message);
+                    lastStatus = ex.Message;
                 }
             }, new GlobalProgressOptions("Downloading trailer...") { Cancelable = true, IsIndeterminate = true });
 
@@ -291,8 +293,12 @@ namespace FullVid
             }
             else
             {
+                // Surface the phase that failed (yt-dlp download vs ffmpeg conversion) so the user
+                // knows which tool to look at; point them at the log + Troubleshooting tab.
+                var detail = string.IsNullOrWhiteSpace(lastStatus) ? "" : "\n\n" + lastStatus;
                 _api.Dialogs.ShowErrorMessage(
-                    "Trailer download failed. Check that yt-dlp and FFmpeg are configured in FullReel settings.",
+                    "Trailer download failed." + detail +
+                    "\n\nEnable debug logging in FullReel settings (Troubleshooting) and check FullReel.log for the exact yt-dlp / ffmpeg error.",
                     "FullReel");
             }
         }
