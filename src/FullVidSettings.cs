@@ -98,6 +98,14 @@ namespace FullVid
         private bool pauseUniPlaySong = true;
         public bool PauseUniPlaySong { get => pauseUniPlaySong; set { pauseUniPlaySong = value; OnPropertyChanged(); } }
 
+        // Sub-option of PauseUniPlaySong. Default (false): UPS pauses for the whole FullReel
+        // session — the moment the search dialog opens, held through the player, no resume blip
+        // between windows. On (true): UPS keeps playing while browsing results (and during a
+        // download started straight from results); it pauses ONLY when the video player opens and
+        // resumes when it closes. No effect when PauseUniPlaySong is off.
+        private bool pausePlayerOnly = false;
+        public bool PausePlayerOnly { get => pausePlayerOnly; set { pausePlayerOnly = value; OnPropertyChanged(); } }
+
         private VideoQuality downloadQuality = VideoQuality.Best;
         public VideoQuality DownloadQuality { get => downloadQuality; set { downloadQuality = value; OnPropertyChanged(); } }
 

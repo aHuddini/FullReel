@@ -187,10 +187,14 @@ namespace FullVid
 
             // UPS stays paused for the WHOLE FullReel session: paused when the search dialog
             // opens, held through watch/download handoffs (no resume blip between windows), and
-            // resumed only when the user is fully out.
+            // resumed only when the user is fully out. When PausePlayerOnly is on, this
+            // session-wide pause is skipped entirely — UPS keeps playing while browsing (and for a
+            // download started from results), and the video player owns pause/resume by itself
+            // (VideoPlayerDialog pauses on load, resumes on close). upsPaused stays false, so every
+            // resume site below (which all guard on it) becomes a no-op.
             var bridge = new UniPlaySongBridge(new ProcessUriInvoker());
             var upsPaused = false;
-            if (settings.PauseUniPlaySong)
+            if (settings.PauseUniPlaySong && !settings.PausePlayerOnly)
             {
                 bridge.Pause();
                 upsPaused = true;

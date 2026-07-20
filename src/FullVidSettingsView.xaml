@@ -76,6 +76,11 @@
                               IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,12,0,0"/>
                     <TextBlock Text="Pauses UniPlaySong's game music while a video plays, and resumes it on close. Does nothing if UniPlaySong isn't installed."
                                FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+                    <CheckBox Content="Pause only in the player, not while searching"
+                              IsChecked="{Binding Settings.PausePlayerOnly}"
+                              IsEnabled="{Binding Settings.PauseUniPlaySong}" Margin="24,8,0,0"/>
+                    <TextBlock Text="By default UniPlaySong is paused for the whole FullReel session (from the moment the search opens). Turn this on to keep the music playing while you browse results — it pauses only when a video actually starts playing."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="48,2,0,0"/>
 
                     <Separator Margin="0,16"/>
 
