@@ -5,10 +5,9 @@ Packages:
     ReleaseDate: 2026-07-19
     PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.0/FullReel-1_0_0.pext'
     Changelog:
-      - '[New Feature] Right-click a game on Desktop or access the Fullscreen extension menu and pick "FullReel" to search YouTube for its videos — trailers, gameplay, walkthroughs, reviews, and guides, browsed by category tab.'
-      - '[New Feature] Watch any video fullscreen in a borderless, minimal player that streams direct from YouTube smoothly with different encoding options. Driven fully by controller AND keyboard (play/pause, seek, volume, download, close).'
-      - '[New Feature] Frosted-glass player UI: real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles.'
-      - '[New Feature] Download a video into the game''s ExtraMetadataLoader folder as VideoTrailer.mp4 (H.264/AAC) so EML plays it as the game''s trailer. Download quality and cookies (browser or custom file) are configurable.'
+      - '[New Feature] Right-click a game on Desktop or access the Fullscreen extension menu and pick "FullReel" to search YouTube for its videos (such as trailers).'
+      - '[New Feature] Watch any video in fullscreen in a borderless, minimal player that streams direct from YouTube. Plays the best format the source offers by default. Driven fully by controller AND keyboard.'
+      - '[New Feature] Frosted-glass player UI: real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles (MinimalGlass default).'
+      - '[New Feature] Download a video into the game''s ExtraMetadataLoader folder as VideoTrailer.mp4 (H.264/AAC) so EML plays it as the game''s trailer.'
       - '[New Feature] UniPlaySong integration: pauses UniPlaySong''s music while a video plays and resumes it on close.'
-      - '[Improved] Tool-path validation in settings for yt-dlp, ffmpeg, and deno — each picker validates the binary and shows a live status, so a missing tool is caught before it breaks search or download.'
-      - '[Known Issue] Age-restricted videos can''t be played in the embedded player. Their thumbnails appear blurred in the results, and FullReel recommends watching them directly on YouTube.'
+      - '[Known Issue] Age-restricted videos can''t be played in the embedded player. Their thumbnails appear blurred in the results, and FullReel recommends watching them directly on YouTube. If using cookies, you may be able to bypass this restriction.'

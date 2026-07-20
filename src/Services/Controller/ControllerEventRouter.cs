@@ -24,6 +24,15 @@ namespace FullVid.Services.Controller
         private DateTime _registrationCooldownUntil = DateTime.MinValue;
         private const int RegistrationCooldownMs = 200;
 
+        // How long a closing modal holds its keyboard focus past the closing press. A controller
+        // B is notify-only — Playnite ALSO sees it, and the instant the modal closes its
+        // Fullscreen grid reclaims focus so the trailing controller events (repeat / release
+        // bounce Playnite delivers ms later) activate the focused game tile → the game launches
+        // or the theme view animates. Dialogs defer their window.Close() by this long, keeping
+        // focus, so those trailing events land on the closing modal, not Playnite's grid. Sized
+        // off the observed twin arrivals (+4ms / +34ms after close in FullReel.log).
+        public const int PostCloseSuppressMs = 100;
+
         public ControllerEventRouter(Common.FileLogger fileLogger = null)
         {
             _fileLogger = fileLogger;

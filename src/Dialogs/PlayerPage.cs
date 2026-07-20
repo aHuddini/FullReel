@@ -265,7 +265,7 @@ namespace FullVid.Dialogs
         //   • bounded polling (~20s max), no infinite loops, never touches playback state
         //   • stall watchdog: 3 genuine buffering stalls (seek-triggered ones filtered) release
         //     the quality lock back to the full adaptive range so the video keeps playing
-        internal static string BuildEmbedScript(bool forceHd)
+        internal static string BuildEmbedScript(bool forceHd, bool prefer1080)
         {
             return
                 "(function(){try{" +
@@ -273,13 +273,16 @@ namespace FullVid.Dialogs
                 "if(!/(^|\\.)youtube(-nocookie)?\\.com$/.test(location.hostname))return;" +
                 "if(location.pathname.indexOf('/embed')!==0)return;" +
                 "var FORCE=" + (forceHd ? "true" : "false") + ";" +
+                // PREF1080 on: stop climbing once the screen is covered (screen-matched, capped
+                // toward 1080 on a 1080p monitor). Off (default): climb to the BEST available rung.
+                "var PREF1080=" + (prefer1080 ? "true" : "false") + ";" +
                 // manual = the user picked a quality via the pill; the auto-forcer stands down.
                 "var tries=0,stalls=0,released=false,lastSeek=0,manual=false;" +
-                // Prefer HD matched to the screen when possible, else fall back toward 1080p:
-                // walk the ladder up from 720 remembering the largest AVAILABLE rung, stop at the
-                // first one that covers the physical screen (height x DPR). A 4K monitor gets
-                // hd2160 when the video has it; a video maxing out at 1080 gets hd1080. No
-                // availability data -> the walk stops at the screen-need rung blind. null = auto.
+                // Walk the ladder up from 720, remembering the largest AVAILABLE rung. Default:
+                // never break — end on the highest rung the source offers (2160 when present).
+                // PREF1080: stop at the first rung covering the physical screen (height x DPR),
+                // so a 1080p monitor caps at hd1080. No availability data -> the walk still lands
+                // on the top ladder rung (default) or the screen-need rung (PREF1080). null = auto.
                 "function pick(p){try{" +
                 "var need=(screen.height||1080)*(window.devicePixelRatio||1);" +
                 "var ladder=['hd720','hd1080','hd1440','hd2160'];" +
@@ -290,7 +293,7 @@ namespace FullVid.Dialogs
                 "var chosen=null;" +
                 "for(var j=0;j<ladder.length;j++){var q=ladder[j];" +
                 "if(av&&!av[q])continue;" +
-                "chosen=q;if(hs[q]>=need)break;}" +
+                "chosen=q;if(PREF1080&&hs[q]>=need)break;}" +
                 "return chosen;}catch(e){return null;}}" +
                 "function apply(){try{if(!FORCE||released||manual)return;" +
                 "var p=document.getElementById('movie_player');" +

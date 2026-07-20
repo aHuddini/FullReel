@@ -33,9 +33,9 @@ Built with the help of Claude Code and Cursor IDE
 ## 🎬 Features
 
 - **Category Search** - Right-click a game and pick **FullReel** to search YouTube, browsed by category tab (trailers, gameplay, walkthroughs, reviews, guides). Results stream in instantly with thumbnails, titles, durations, channel, and view counts.
-- **Fullscreen Player** - A borderless player that streams direct from YouTube. Autoplays on open, requests hd1080 so 60fps streams play, and uses a smooth direct-render path.
+- **Fullscreen Player** - A borderless player that streams direct from YouTube. Autoplays on open, plays the best quality the source offers (1440p/4K when available; optional *Prefer 1080p first*), and uses a smooth direct-render path.
 - **Controller and Keyboard** - Both fully drive the player and results list (play/pause, seek, volume, fullscreen, screenshot, download, close), respecting Playnite's Swap Confirm/Cancel setting.
-- **Frosted-Glass UI** - Real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles (FrostedBlur, HeavyFrost, TintedPurple, MinimalGlass, GradientFade, Performance) and a live preview in settings.
+- **Frosted-Glass UI** - Real backdrop-blur controls and an auto-hiding title bar over the live video, with 6 selectable bar styles (MinimalGlass default, plus FrostedBlur, HeavyFrost, TintedPurple, GradientFade, Performance) and a live preview in settings.
 - **Trailer Downloads** - Save a video into the game's ExtraMetadataLoader folder as `VideoTrailer.mp4` (H.264 / AAC), so EML plays it as the game's trailer. Quality and cookies are configurable.
 - **UniPlaySong Integration** - Pauses [UniPlaySong](https://github.com/aHuddini/UniPlaySong)'s music while a video plays and resumes it on close. Does nothing if UniPlaySong isn't installed. On by default.
 - **Tool-Path Validation** - yt-dlp, ffmpeg, and deno path pickers in settings, each validated with a live status readout so a missing tool is caught before it breaks search or download.
@@ -44,32 +44,20 @@ Built with the help of Claude Code and Cursor IDE
 
 ## Requirements
 
-- **yt-dlp**, **ffmpeg**, and **deno**, user-installed and needed for Find and Download. Set their paths in settings; each is validated with a live status. [deno](https://deno.com) is yt-dlp's JavaScript runtime for YouTube's stream-signature challenges, and without it search and download can fail.
-- **WebView2 Evergreen runtime 132+**, required to watch videos. Preinstalled on most Windows 11 systems; otherwise install Microsoft's Evergreen runtime.
-- **[ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection)**, optional and needed only for the downloaded-trailer playback complement.
+- **yt-dlp**, **ffmpeg**, and **deno**. Set their paths in the add-on's settings; each is validated with a live status. [deno](https://deno.com) is yt-dlp's JavaScript runtime for YouTube's stream-signature challenges, and without it search and download can fail.
+- **WebView2 Evergreen runtime 132+**, aka Edge browser. Required to watch videos. Preinstalled on most Windows 11 systems; otherwise install Microsoft's Evergreen runtime.
+- [Optional] **[ExtraMetadataLoader](https://github.com/darklinkpower/PlayniteExtensionsCollection)**, optional and needed only for the downloaded-trailer playback complement.
 
 ---
 
 ## How to Use
 
-1. Right-click a game and pick **FullReel**. The results window opens and fills in as videos are found, sorted into category tabs.
+1. Right-click a game or access Fullreel in the extensions menu of Fullscreen. Pick **FullReel**. The results window opens and fills in as videos are found, sorted into category tabs.
 2. Navigate the results with the D-pad or arrow keys, and switch category tabs with LB/RB or Q/E.
 3. On a result:
    - **A / Enter** to watch it fullscreen
    - **Y / D** to download it as the game's trailer
    - **B / Esc** to close and return to Playnite
-
-### Player controls
-
-| Action | Controller | Keyboard |
-|---|---|---|
-| Play / Pause | A | Space / K |
-| Seek 10s | D-Pad Left/Right | Left / Right |
-| Volume | D-Pad Up/Down | Up / Down |
-| Fullscreen | Select | F |
-| Toggle bottom bar | RB | P |
-| Download | Y | D |
-| Close | B | Esc |
 
 The player's title bar and controls bar are real frosted glass (backdrop-blur over the live video). The title bar auto-hides during playback and reappears on input. Pick from 6 controls-bar styles in **Settings → Player → Controls bar**, each with a live preview.
 
@@ -86,7 +74,8 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 - **Tool paths**: yt-dlp, ffmpeg, and deno pickers, each validated with a live status message.
 - **Cookies**: browser cookies or a custom cookies file, for age-restricted or region-locked videos.
 - **Download quality**: pick the quality for saved trailers.
-- **Player controls bar**: choose one of the 6 glass styles, with a live preview image.
+- **Playback quality**: *Prefer HD playback* (on by default) reaches for the best format the source offers; *Prefer 1080p first* caps it at 1080p for a lighter default.
+- **Player controls bar**: choose one of the 6 glass styles (MinimalGlass default), with a live preview image.
 - **UniPlaySong integration**: pause UniPlaySong's music while a video plays. On by default.
 - **Debug logging**: verbose log for troubleshooting.
 
@@ -94,8 +83,8 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 
 ## Known Issues
 
-- **Age-restricted videos** can't be played in the embedded player. YouTube blurs their thumbnails in the results and points you to watching them directly on YouTube.
-- **Video quality depends on the source upload.** Some channels upload choppy or low-bitrate videos that look poor even at 1080p, while others (official publisher channels like PlayStation) look excellent at the same resolution. The quality pill shows the true decoded resolution; the rest is the uploader's encode.
+- **Age-restricted videos** can't be played in the embedded player. YouTube blurs their thumbnails in the results and points you to watching them directly on YouTube. You might be able to bypass this with cookies.
+- **Video quality depends on the source upload.** Some channels upload choppy or low-bitrate videos that look poor even at 1080p, while others (official publisher channels like PlayStation) look excellent at the same resolution. The quality pill icon will show the true decoded resolution.
 
 ---
 

@@ -193,7 +193,7 @@ namespace FullVid.Dialogs
             try
             {
                 await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
-                    PlayerPage.BuildEmbedScript(_settings?.ForceHdPlayback != false));
+                    PlayerPage.BuildEmbedScript(_settings?.ForceHdPlayback != false, _settings?.Prefer1080pFirst == true));
             }
             catch (Exception ex)
             {
@@ -241,7 +241,7 @@ namespace FullVid.Dialogs
             if (!string.Equals(e.Request?.Uri, PlayerPageUrl, StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var style = _settings?.PlayerBarStyle ?? PlayerBarStyle.FrostedBlur;
+            var style = _settings?.PlayerBarStyle ?? PlayerBarStyle.MinimalGlass;
             var html = PlayerPage.BuildPlayerHtml(_video?.Id ?? string.Empty, _video?.Title ?? string.Empty,
                 style, _frosted, _settings?.KeepBarOverBlack != false);
             var stream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
@@ -521,7 +521,7 @@ namespace FullVid.Dialogs
                     _onDownload?.Invoke(_video);
                     break;
                 case PlayerAction.Close:
-                    Window.GetWindow(this)?.Close();
+                    CloseDeferred();
                     break;
                 case PlayerAction.ToggleFullscreen:
                     ToggleFullscreen();
@@ -537,6 +537,39 @@ namespace FullVid.Dialogs
                     Script("if(window.fvCycleQuality)fvCycleQuality();");
                     break;
             }
+        }
+
+        // Guards against a second close press queuing another deferred close.
+        private bool _closing;
+
+        // Close, but hold the window (and its keyboard focus) open for the router's post-close
+        // suppression window first. A controller B is notify-only — Playnite ALSO sees it and,
+        // the instant the modal closes, its Fullscreen grid reclaims focus and the trailing
+        // controller events (repeat/release bounce) activate the focused game tile → the game
+        // launches or the theme view animates. Keeping the modal focused ~100ms past the press
+        // means those trailing events land on this (still-focused) window, not the grid. Wired to
+        // a one-shot DispatcherTimer so we stay on the UI thread. Keyboard Esc is already consumed
+        // by WPF (never leaks) — it pays the same small delay, which is imperceptible.
+        private void CloseDeferred()
+        {
+            if (_closing) return;
+            _closing = true;
+
+            var window = Window.GetWindow(this);
+            if (window == null) return;
+
+            FocusHost("close-deferred");
+
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(Services.Controller.ControllerEventRouter.PostCloseSuppressMs)
+            };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                window.Close();
+            };
+            timer.Start();
         }
 
         // Fullscreen toggle state — tracked explicitly rather than read back from WindowState,

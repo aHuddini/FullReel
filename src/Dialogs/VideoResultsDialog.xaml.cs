@@ -283,7 +283,7 @@ namespace FullVid.Dialogs
                     InvokeWithSelected(_onDownload);
                     break;
                 case DialogAction.Close:
-                    _onClose?.Invoke();
+                    CloseDeferred();
                     break;
                 case DialogAction.NavigateUp:
                     Navigate(-1);
@@ -301,6 +301,35 @@ namespace FullVid.Dialogs
         }
 
         public void OnControllerButtonReleased(ControllerInput button) { }
+
+        // Guards against a second close press queuing another deferred close.
+        private bool _closing;
+
+        // Close, but hold the window (and its keyboard focus) open for the router's post-close
+        // suppression window first. A controller B is notify-only — Playnite ALSO sees it and,
+        // the instant the modal closes, its Fullscreen grid reclaims focus and the trailing
+        // controller events (repeat / release bounce) activate the focused game tile → the game
+        // launches or the theme view animates. Holding the modal focused ~100ms past the press
+        // means those trailing events land on this (still-focused) window, not the grid. Keyboard
+        // Esc is already consumed by WPF (never leaks); it pays the same imperceptible delay.
+        private void CloseDeferred()
+        {
+            if (_closing) return;
+            _closing = true;
+
+            Focus(); // keep keyboard focus on this control through the danger window
+
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(ControllerEventRouter.PostCloseSuppressMs)
+            };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                _onClose?.Invoke();
+            };
+            timer.Start();
+        }
 
         private void InvokeWithSelected(Action<VideoResult> callback)
         {

@@ -65,8 +65,13 @@
                     <TextBlock Text="General Settings" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                     <CheckBox Content="Prefer HD playback (recommended)"
                               IsChecked="{Binding Settings.ForceHdPlayback}"/>
-                    <TextBlock Text="Asks YouTube for the best quality your screen can use instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines. Note: the source upload still matters — some channels upload choppy or low-bitrate videos, while others (e.g. official publisher channels) look excellent at the same resolution."
+                    <TextBlock Text="Asks YouTube for the best quality the source offers instead of its (often low) automatic pick. Falls back to automatic quality if the connection can't keep up or YouTube declines. Note: the source upload still matters — some channels upload choppy or low-bitrate videos, while others (e.g. official publisher channels) look excellent at the same resolution."
                                FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+                    <CheckBox Content="Prefer 1080p first"
+                              IsChecked="{Binding Settings.Prefer1080pFirst}"
+                              IsEnabled="{Binding Settings.ForceHdPlayback}" Margin="24,8,0,0"/>
+                    <TextBlock Text="By default HD playback reaches for the highest format available (1440p/4K when the source has it). Turn this on to cap at 1080p instead — a lighter default that still looks sharp on 1080p screens. Only applies when HD playback is on."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="48,2,0,0"/>
                     <CheckBox Content="Pause UniPlaySong while a trailer plays"
                               IsChecked="{Binding Settings.PauseUniPlaySong}" Margin="0,12,0,0"/>
                     <TextBlock Text="Pauses UniPlaySong's game music while a video plays, and resumes it on close. Does nothing if UniPlaySong isn't installed."

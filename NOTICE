@@ -1,0 +1,13 @@
+FullReel is licensed under the MIT License (see LICENSE).
+
+The MIT License covers FullReel's own source code only. FullReel bundles the
+following third-party components, which are redistributed under their own
+licenses and are NOT relicensed by FullReel's MIT License:
+
+- MaterialDesignThemes.Wpf, MaterialDesignColors — MIT License
+- Microsoft.Web.WebView2 (Core / Wpf / WinForms, WebView2Loader) — see Microsoft's WebView2 SDK license
+- Microsoft.Xaml.Behaviors.Wpf — MIT License
+- Newtonsoft.Json — MIT License
+
+External tools invoked by FullReel (yt-dlp, ffmpeg, deno) are user-installed,
+not bundled, and retain their own licenses.

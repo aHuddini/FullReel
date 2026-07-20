@@ -53,7 +53,7 @@ namespace FullVid
 
         // FrostedBlur = glass bar over the video (live blurred backing). Performance = plain strip
         // below the video, no blur — lighter on the GPU.
-        private PlayerBarStyle playerBarStyle = PlayerBarStyle.FrostedBlur;
+        private PlayerBarStyle playerBarStyle = PlayerBarStyle.MinimalGlass;
         public PlayerBarStyle PlayerBarStyle { get => playerBarStyle; set { playerBarStyle = value; OnPropertyChanged(); } }
 
         // When the player is expanded to fullscreen: false (default) keeps the bottom controls
@@ -67,6 +67,13 @@ namespace FullVid
         // up, playback falls back to normal adaptive quality. Kill switch for when it misbehaves.
         private bool forceHdPlayback = true;
         public bool ForceHdPlayback { get => forceHdPlayback; set { forceHdPlayback = value; OnPropertyChanged(); } }
+
+        // With HD playback on, default (false) reaches for the BEST available format the source
+        // offers — 1440p/2160p when present — not just what the screen strictly needs. Turn on to
+        // prefer 1080p as the ceiling instead (screen-matched, capped toward 1080), for users who
+        // want a lighter default over the absolute-highest pick. No effect when ForceHdPlayback is off.
+        private bool prefer1080pFirst = false;
+        public bool Prefer1080pFirst { get => prefer1080pFirst; set { prefer1080pFirst = value; OnPropertyChanged(); } }
 
         // Keep the controls bar visible over solid-black video frames (fixes WebView2 #5574 by
         // nudging the video box 4px so it doesn't exactly match the window and trigger the overlay
