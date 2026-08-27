@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.1] - 2026-08-26
+
+### Fixed
+
+- **Downloads ignored the quality setting and arrived at 720p.** Reported by a user whose every download came back 720p regardless of what the preference said. Three separate faults in the format selector. It filtered on a codec that YouTube only publishes up to 1080p, so higher rungs were unreachable no matter the setting; it now filters on height and sorts within that set, treating codec as a preference rather than a gate. **Best** means best again — no cap at all, rather than a cap that happened to land at 720p. Video-only formats could also be picked with no audio merged (a silent trailer), and fragment artifacts (`.f137` and friends) could survive as the final file. Both are fixed.
+
+### Added
+
+- **2160p and 1440p download options.** The quality dropdown now covers 4K and 1440p alongside the existing rungs.
+- **Downloads say what they actually fetched.** Before committing to a download, FullReel asks yt-dlp what it *would* pick and what YouTube actually offered, then logs the requested quality, the chosen format, and the full ladder of available heights. This is the difference between "my trailer is 720p" and knowing *why* — a ceiling imposed by YouTube is now distinguishable from a bug in the selector.
+- **Automatic retry when YouTube offers only low quality.** When the probe finds nothing above 720p, FullReel retries once against a player client that exposes the adaptive ladder. It fires only on the evidence of a low ceiling, and never when a client has been pinned by hand. If the retry does not improve things, it says so rather than silently retrying — usually meaning yt-dlp is out of date, or the video genuinely is low quality.
+- **Player-client escape hatch.** An optional `player_client` setting for when YouTube shifts and a working client is known before a new FullReel build ships. Empty by default on purpose: yt-dlp curates its own client list upstream, and the default path should stay on it.
+
+### Changed
+
+- **UniPlaySong pause is now scoped to the player.** A new option pauses UniPlaySong's music only while a video is actually playing, rather than for the whole time the search dialog is open. Browsing results no longer silences your library music.
 ## [1.0.0] - 2026-07-19
 
 Initial public release.
@@ -41,3 +57,4 @@ Initial public release.
 - yt-dlp + ffmpeg + deno (user-installed) for Find and Download.
 - WebView2 Evergreen runtime 132+ for watching.
 - ExtraMetadataLoader (optional) for the downloaded-trailer playback complement.
+

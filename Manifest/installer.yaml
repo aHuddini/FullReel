@@ -1,5 +1,17 @@
 AddonId: 'FullVid.087df234-b55b-4824-a7a2-3adac1aec1ec'
 Packages:
+  - Version: 1.0.1
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: 2026-08-26
+    PackageUrl: 'https://github.com/aHuddini/FullReel/releases/download/1.0.1/FullReel-1_0_1.pext'
+    Changelog:
+      - '[Fixed] Downloads ignored the quality setting and always arrived at 720p. Best now means best, and the full range up to 4K is reachable.'
+      - '[Fixed] A download could produce a silent video with no audio track, or leave a partial fragment file behind.'
+      - '[New Setting] Added 2160p (4K) and 1440p to the download quality options.'
+      - '[New Feature] Downloads now report what was requested, what was picked, and every quality YouTube actually offered, so a low-quality result tells you why.'
+      - '[New Feature] When YouTube offers nothing above 720p, FullReel automatically retries once with a client that exposes the higher formats.'
+      - '[New Setting] Optional player client override for when YouTube changes and a working client is known before the next FullReel build.'
+      - '[New Setting] UniPlaySong pausing can now be limited to the video player only, so browsing search results no longer pauses your music.'
   - Version: 1.0.0
     RequiredApiVersion: 6.16.0
     ReleaseDate: 2026-07-19

@@ -20,6 +20,33 @@ Built with the help of Claude Code and Cursor IDE
 
 ---
 
+## What''s New - v1.0.1
+
+### Fixed
+- **Downloads now respect the quality you picked.** Saved trailers always came back at 720p regardless of the setting. **Best** means best again, and everything up to 4K is reachable. Also fixed downloads that could end up silent (no audio track) or leave a partial fragment file behind.
+
+### Added
+- **2160p (4K) and 1440p** download options.
+- **Downloads report what they actually fetched** - the quality requested, the format picked, and every resolution YouTube offered - so a low-quality result tells you whether it was YouTube''s ceiling or FullReel''s choice. When YouTube offers nothing above 720p, FullReel retries once against a client that exposes the higher formats.
+
+### Changed
+- **UniPlaySong pausing can be limited to the player**, so browsing search results no longer pauses your music.
+
+---
+## What's New - v1.0.1
+
+### Fixed
+- **Downloads now respect the quality you picked.** Saved trailers always came back at 720p regardless of the setting. **Best** means best again, and everything up to 4K is reachable. Also fixed downloads that could end up silent (no audio track) or leave a partial fragment file behind.
+
+### Added
+- **2160p (4K) and 1440p** download options.
+- **Downloads report what they actually fetched** - the quality requested, the format picked, and every resolution YouTube offered - so a low-quality result tells you whether it was YouTube's ceiling or FullReel's choice. When YouTube offers nothing above 720p, FullReel retries once against a client that exposes the higher formats.
+
+### Changed
+- **UniPlaySong pausing can be limited to the player**, so browsing search results no longer pauses your music.
+
+---
+
 ## 🎬 Demo
 
 <p align="center">
@@ -73,7 +100,7 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 
 - **Tool paths**: yt-dlp, ffmpeg, and deno pickers, each validated with a live status message.
 - **Cookies**: browser cookies or a custom cookies file, for age-restricted or region-locked videos.
-- **Download quality**: pick the quality for saved trailers.
+- **Download quality**: pick the quality for saved trailers - Best, 2160p, 1440p, 1080p, 720p or 480p. Best takes the highest the source offers.
 - **Playback quality**: *Prefer HD playback* (on by default) reaches for the best format the source offers; *Prefer 1080p first* caps it at 1080p for a lighter default.
 - **Player controls bar**: choose one of the 6 glass styles (MinimalGlass default), with a live preview image.
 - **UniPlaySong integration**: pause UniPlaySong's music while a video plays. On by default.
@@ -105,3 +132,4 @@ Downloads land as `VideoTrailer.mp4` in the game's ExtraMetadataLoader folder (`
 ## Support
 
 If FullReel is useful to you, consider [buying me a coffee](https://ko-fi.com/huddini).
+
