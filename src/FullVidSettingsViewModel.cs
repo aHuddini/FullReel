@@ -14,6 +14,21 @@ namespace FullVid
         private readonly ToolProbe _probe = new ToolProbe();
         private FullVidSettings settings;
 
+        // Explicit display order for the download-quality dropdown. Enum.GetValues orders by
+        // NUMERIC value, and VideoQuality's numbers are pinned by persistence (2160/1440 were
+        // appended so existing saved settings keep their meaning), so enumerating the type would
+        // list them Best, 1080, 720, 480, 2160, 1440. This lists them highest-first instead.
+        public System.Collections.Generic.IReadOnlyList<VideoQuality> DownloadQualityOptions { get; } =
+            new[]
+            {
+                VideoQuality.Best,
+                VideoQuality.P2160,
+                VideoQuality.P1440,
+                VideoQuality.P1080,
+                VideoQuality.P720,
+                VideoQuality.P480
+            };
+
         public FullVidSettingsViewModel(FullVid plugin)
         {
             this.plugin = plugin;

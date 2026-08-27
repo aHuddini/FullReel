@@ -127,8 +127,10 @@
                     <TextBlock Text="Download" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
                     <StackPanel Orientation="Horizontal" Margin="0,5">
                         <TextBlock Text="Quality:" VerticalAlignment="Center" Width="110"/>
+                        <!-- Bound to the view model's ordered list, not Enum.GetValues, so the
+                             options read highest-first. See DownloadQualityOptions. -->
                         <ComboBox Width="140" SelectedItem="{Binding Settings.DownloadQuality}"
-                                  ItemsSource="{Binding Source={StaticResource VideoQualityValues}}"/>
+                                  ItemsSource="{Binding DownloadQualityOptions}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,5">
                         <TextBlock Text="Cookies source:" VerticalAlignment="Center" Width="110"/>
@@ -142,6 +144,21 @@
                         <TextBox Text="{Binding Settings.CustomCookiesFilePath, UpdateSourceTrigger=PropertyChanged}" Width="320" Margin="0,0,10,0"/>
                         <Button Content="Browse..." Width="80" Command="{Binding BrowseCookiesFile}"/>
                     </StackPanel>
+
+                    <CheckBox Content="Retry with a different YouTube client when only low quality is offered"
+                              IsChecked="{Binding Settings.AutoClientFallback}" Margin="0,14,0,0"/>
+                    <TextBlock Text="YouTube sometimes hands yt-dlp only the low-resolution combined formats (360p/720p), which no quality setting can override. When that happens FullReel retries once using a client that exposes the full resolution list. Leave this on."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="24,2,0,0"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Player client:" VerticalAlignment="Center" Width="110"/>
+                        <TextBox Text="{Binding Settings.YtDlpPlayerClient, UpdateSourceTrigger=PropertyChanged}" Width="200"/>
+                    </StackPanel>
+                    <TextBlock Text="Advanced — leave empty. Empty means yt-dlp picks the client, which is kept up to date with YouTube's changes. Only set one (e.g. android_vr) if downloads stay low quality after updating yt-dlp."
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap" Margin="110,2,0,0"/>
+
+                    <TextBlock Text="If videos download at 360p or 720p regardless of the quality setting, update yt-dlp first — that resolves it in most cases."
+                               FontSize="11" Foreground="#C8A24B" TextWrapping="Wrap" Margin="0,10,0,0"/>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

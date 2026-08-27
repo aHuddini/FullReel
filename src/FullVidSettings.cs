@@ -15,12 +15,19 @@ namespace FullVid
     }
 
     // Target video quality for trailer downloads.
+    //
+    // Playnite persists enums as INTEGERS, so the original members must keep their ordinals —
+    // inserting 2160/1440 in visual order would silently reinterpret every saved setting (a
+    // stored 1, meaning 1080p, would come back as 2160p). New members are appended instead, and
+    // FullVidSettingsViewModel.DownloadQualityOptions supplies the display order for the dropdown.
     public enum VideoQuality
     {
-        Best,
-        P1080,
-        P720,
-        P480
+        Best = 0,
+        P1080 = 1,
+        P720 = 2,
+        P480 = 3,
+        P2160 = 4,
+        P1440 = 5
     }
 
     // How the player's controls hint bar is rendered. All except Performance are in-page CSS
@@ -114,6 +121,19 @@ namespace FullVid
 
         private string customCookiesFilePath = string.Empty;
         public string CustomCookiesFilePath { get => customCookiesFilePath; set { customCookiesFilePath = value ?? string.Empty; OnPropertyChanged(); } }
+
+        // Optional yt-dlp --extractor-args youtube:player_client value. EMPTY BY DEFAULT ON PURPOSE:
+        // yt-dlp curates its own client list upstream and updates it as YouTube changes, so the
+        // default path should stay on that list rather than pinning a client that will eventually
+        // be retired. This exists as an escape hatch for when YouTube shifts and a working client
+        // is known before a new FullReel build ships. See AutoClientFallback for the automatic case.
+        private string ytDlpPlayerClient = string.Empty;
+        public string YtDlpPlayerClient { get => ytDlpPlayerClient; set { ytDlpPlayerClient = value ?? string.Empty; OnPropertyChanged(); } }
+
+        // When the format probe finds YouTube offered nothing above 720p, retry once with a client
+        // known to expose the adaptive (DASH) ladder before settling for a pre-muxed 360p/720p file.
+        private bool autoClientFallback = true;
+        public bool AutoClientFallback { get => autoClientFallback; set { autoClientFallback = value; OnPropertyChanged(); } }
 
         private bool enableDebugLogging = false;
         public bool EnableDebugLogging { get => enableDebugLogging; set { enableDebugLogging = value; OnPropertyChanged(); } }
